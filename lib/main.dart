@@ -1,136 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-import 'package:pumpkin/core/app_router.dart';
-import 'package:pumpkin/features/feed_screen.dart';
-import 'package:pumpkin/features/notifications.dart';
-import 'package:pumpkin/features/profile_screen.dart';
-import 'package:pumpkin/features/feed/bloc/feed_bloc.dart';
-import 'package:pumpkin/features/feed/bloc/feed_event.dart';
-import 'package:pumpkin/services/firebase_auth_service.dart';
-import 'package:pumpkin/services/feed_service.dart';
+import 'firebase_options.dart';
+import 'features/auth/data/repositories/auth_repository.dart';
+import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_event.dart';
+import 'features/feed/data/repositories/feed_repository.dart';
+import 'features/feed/presentation/bloc/feed_bloc.dart';
+import 'features/post/presentation/bloc/post_creation_bloc.dart';
+import 'features/profile/data/repositories/profile_repository.dart';
+import 'shared/services/image_picker_service.dart';
+import 'core/router/app_router.dart';
+import 'core/themes/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      routerConfig: AppRouter.router,
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      debugShowCheckedModeBanner: false,
-      builder: (context, child) => child!,
-    );
-  }
-}
+    final authRepository = AuthRepository();
+    final feedRepository = FeedRepository();
+    final profileRepository = ProfileRepository();
+    final imagePickerService = ImagePickerService();
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  final FirebaseAuthService _authService = FirebaseAuthService();
-  final FeedService _feedService = FeedService();
-
-  int _currentIndex = 0;
-
-  Future<void> _handleLogout() async {
-    try {
-      await _authService.signOut();
-      // AuthWrapper will automatically handle the redirect to login page
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error signing out. Please try again.'),
-            backgroundColor: Colors.red,
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: authRepository),
+        RepositoryProvider.value(value: feedRepository),
+        RepositoryProvider.value(value: profileRepository),
+        RepositoryProvider.value(value: imagePickerService),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>(
+            create: (context) => AuthBloc(
+              authRepository: authRepository,
+            )..add(const AuthInitialized()),
           ),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create:
-          (context) =>
-              FeedBloc(feedService: FeedService())..add(const LoadFeed()),
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: Text(widget.title),
-          actions: [
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'logout') {
-                  _handleLogout();
-                }
-              },
-              itemBuilder: (BuildContext context) {
-                return [
-                  PopupMenuItem<String>(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout, color: Colors.grey[700]),
-                        const SizedBox(width: 8),
-                        const Text('Logout'),
-                      ],
-                    ),
-                  ),
-                ];
-              },
-              icon: const Icon(Icons.more_vert),
+          BlocProvider<FeedBloc>(
+            create: (context) => FeedBloc(
+              feedRepository: feedRepository,
             ),
-          ],
-        ),
-        body: IndexedStack(
-          index: _currentIndex,
-          children: [
-            const FeedScreen(),
-            const ProfileScreen(),
-            const NotificationsScreen(),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            _feedService.createPost();
-            GoRouter.of(context).push('/post');
-          },
-          child: const Icon(Icons.add),
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (value) {
-            setState(() {
-              _currentIndex = value;
-            });
-          },
-          items: [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Posts'),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications),
-              label: 'Notifications',
+          ),
+          BlocProvider<PostCreationBloc>(
+            create: (context) => PostCreationBloc(
+              feedRepository: feedRepository,
+              imagePickerService: imagePickerService,
+              authBloc: context.read<AuthBloc>(),
+              feedBloc: context.read<FeedBloc>(),
             ),
-          ],
+          ),
+        ],
+        child: MaterialApp.router(
+          title: 'PumpkinSocial',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeMode.system,
+          routerConfig: AppRouter.router,
+          debugShowCheckedModeBanner: false,
         ),
       ),
     );

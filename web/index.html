@@ -29,8 +29,28 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>pumpkin</title>
+  <title>PumpkinSocial</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Firebase Configuration -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { getStorage } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAjHcLGa01zfGHWQVV1qeEZEYLk9af-Oqg",
+      authDomain: "flutter-chat-app-433ec.firebaseapp.com",
+      projectId: "flutter-chat-app-433ec",
+      storageBucket: "flutter-chat-app-433ec.appspot.com",
+      messagingSenderId: "379932071210",
+      appId: "1:379932071210:web:your-web-app-id"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window.firebaseApp = app;
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
