@@ -15,10 +15,13 @@ service cloud.firestore {
       allow read: if request.auth != null;
       // Only authenticated users can create posts
       allow create: if request.auth != null && 
-        request.auth.uid == resource.data.authorId;
+        request.auth.uid == request.resource.data.authorId;
       // Only post author can update/delete their posts
       allow update, delete: if request.auth != null && 
         request.auth.uid == resource.data.authorId;
+      // Any authenticated user can update likes field only
+      allow update: if request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'updatedAt']);
         
       // Comments subcollection
       match /comments/{commentId} {
@@ -26,16 +29,35 @@ service cloud.firestore {
         allow read: if request.auth != null;
         // Only authenticated users can create comments
         allow create: if request.auth != null &&
-          request.auth.uid == resource.data.authorId;
+          request.auth.uid == request.resource.data.authorId;
         // Only comment author can update/delete their comments
         allow update, delete: if request.auth != null &&
           request.auth.uid == resource.data.authorId;
+        // Any authenticated user can update likes field only
+        allow update: if request.auth != null &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'updatedAt']);
       }
     }
     
-    // Follow relationships (future implementation)
+    // Follow relationships
     match /follows/{followId} {
-      allow read, write: if request.auth != null;
+      // Anyone can read follow relationships (for public follower lists)
+      allow read: if request.auth != null;
+      // Only authenticated users can create follows (must be the follower)
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.followerId;
+      // Only the follower can delete their own follow relationships
+      allow delete: if request.auth != null && 
+        request.auth.uid == resource.data.followerId;
+    }
+    
+    // User statistics
+    match /user_stats/{userId} {
+      // Anyone can read user stats (for public profiles)
+      allow read: if request.auth != null;
+      // Only system/server can write user stats (managed by Cloud Functions or server-side)
+      // For now, allow authenticated users to write their own stats
+      allow write: if request.auth != null;
     }
     
     // Notifications (future implementation)

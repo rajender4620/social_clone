@@ -25,7 +25,7 @@ class _FeedPageState extends State<FeedPage> {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
-    
+
     // Load initial feed
     context.read<FeedBloc>().add(const FeedLoadRequested());
   }
@@ -145,6 +145,7 @@ class _FeedPageState extends State<FeedPage> {
         return const FeedLoadingWidget();
 
       case FeedStatus.error:
+        print(state.errorMessage);
         return FeedErrorWidget(
           message: state.errorMessage ?? 'An error occurred',
           onRetry: () {
@@ -164,7 +165,9 @@ class _FeedPageState extends State<FeedPage> {
           child: ListView.builder(
             controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: state.posts.length + (state.status == FeedStatus.loadingMore ? 1 : 0),
+            itemCount:
+                state.posts.length +
+                (state.status == FeedStatus.loadingMore ? 1 : 0),
             itemBuilder: (context, index) {
               if (index >= state.posts.length) {
                 return _buildLoadingIndicator();
@@ -176,10 +179,7 @@ class _FeedPageState extends State<FeedPage> {
                 currentUserId: currentUserId,
                 onLikePressed: () {
                   context.read<FeedBloc>().add(
-                    PostLikeToggled(
-                      postId: post.id,
-                      userId: currentUserId,
-                    ),
+                    PostLikeToggled(postId: post.id, userId: currentUserId),
                   );
                 },
                 onCommentPressed: () {
@@ -203,7 +203,7 @@ class _FeedPageState extends State<FeedPage> {
 
   Widget _buildEmptyFeed() {
     final theme = Theme.of(context);
-    
+
     return RefreshIndicator(
       onRefresh: _onRefresh,
       child: SingleChildScrollView(
@@ -274,7 +274,7 @@ class _FeedPageState extends State<FeedPage> {
 
   Widget _buildLoadingIndicator() {
     final theme = Theme.of(context);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       child: Center(

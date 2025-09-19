@@ -1,5 +1,5 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
@@ -8,18 +8,46 @@ import '../../features/feed/presentation/pages/feed_page.dart';
 import '../../features/post/presentation/pages/post_creation_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 
+// Custom Listenable that listens to AuthBloc state changes
+class AuthBlocListenable extends ChangeNotifier {
+  AuthBlocListenable(this._authBloc) {
+    _authBloc.stream.listen((_) {
+      // Add small delay to prevent navigation during widget building
+      Future.microtask(() {
+        notifyListeners();
+      });
+    });
+  }
+
+  final AuthBloc _authBloc;
+}
+
 class AppRouter {
-  static final GoRouter _router = GoRouter(
+  static GoRouter createRouter(AuthBloc authBloc) {
+    return GoRouter(
     initialLocation: '/login',
+    refreshListenable: AuthBlocListenable(authBloc),
     routes: [
-      // Authentication routes
+      // Authentication routes with custom transitions to avoid Hero conflicts
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginPage(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const LoginPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
       ),
       GoRoute(
         path: '/signup',
-        builder: (context, state) => const SignUpPage(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const SignUpPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
       ),
       
       // Main app routes
@@ -40,20 +68,25 @@ class AppRouter {
       ),
     ],
     redirect: (context, state) {
-      // Get the authentication state
-      final authBloc = context.read<AuthBloc>();
+      // Get the authentication state from the passed authBloc
       final authState = authBloc.state;
       
-      final isAuthenticated = authState.status == AuthStatus.authenticated;
-      final isLoggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/signup';
+      // Don't redirect if we're still loading
+      if (authState.isLoading) {
+        return null;
+      }
       
-      // If not authenticated and not on login/signup page, redirect to login
-      if (!isAuthenticated && !isLoggingIn) {
+      final isAuthenticated = authState.status == AuthStatus.authenticated;
+      final currentLocation = state.matchedLocation;
+      final isAuthPage = currentLocation == '/login' || currentLocation == '/signup';
+      
+      // If not authenticated and not on auth pages, redirect to login
+      if (!isAuthenticated && !isAuthPage) {
         return '/login';
       }
       
-      // If authenticated and on login/signup page, redirect to home
-      if (isAuthenticated && isLoggingIn) {
+      // If authenticated and on auth pages, redirect to home
+      if (isAuthenticated && isAuthPage) {
         return '/home';
       }
       
@@ -61,8 +94,7 @@ class AppRouter {
       return null;
     },
   );
-
-  static GoRouter get router => _router;
+  }
 }
 
 

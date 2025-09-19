@@ -9,6 +9,7 @@ import 'features/feed/data/repositories/feed_repository.dart';
 import 'features/feed/presentation/bloc/feed_bloc.dart';
 import 'features/post/presentation/bloc/post_creation_bloc.dart';
 import 'features/profile/data/repositories/profile_repository.dart';
+import 'features/follow/data/repositories/follow_repository.dart';
 import 'shared/services/image_picker_service.dart';
 import 'core/router/app_router.dart';
 import 'core/themes/app_theme.dart';
@@ -29,22 +30,25 @@ class MyApp extends StatelessWidget {
     final authRepository = AuthRepository();
     final feedRepository = FeedRepository();
     final profileRepository = ProfileRepository();
+    final followRepository = FollowRepository();
     final imagePickerService = ImagePickerService();
+
+    // Create AuthBloc first so we can pass it to the router
+    final authBloc = AuthBloc(
+      authRepository: authRepository,
+    )..add(const AuthInitialized());
 
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: authRepository),
         RepositoryProvider.value(value: feedRepository),
         RepositoryProvider.value(value: profileRepository),
+        RepositoryProvider.value(value: followRepository),
         RepositoryProvider.value(value: imagePickerService),
       ],
       child: MultiBlocProvider(
         providers: [
-          BlocProvider<AuthBloc>(
-            create: (context) => AuthBloc(
-              authRepository: authRepository,
-            )..add(const AuthInitialized()),
-          ),
+          BlocProvider<AuthBloc>.value(value: authBloc),
           BlocProvider<FeedBloc>(
             create: (context) => FeedBloc(
               feedRepository: feedRepository,
@@ -54,7 +58,7 @@ class MyApp extends StatelessWidget {
             create: (context) => PostCreationBloc(
               feedRepository: feedRepository,
               imagePickerService: imagePickerService,
-              authBloc: context.read<AuthBloc>(),
+              authBloc: authBloc,
               feedBloc: context.read<FeedBloc>(),
             ),
           ),
@@ -64,7 +68,7 @@ class MyApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeMode.system,
-          routerConfig: AppRouter.router,
+          routerConfig: AppRouter.createRouter(authBloc),
           debugShowCheckedModeBanner: false,
         ),
       ),

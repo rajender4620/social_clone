@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pumpkinsocial/features/follow/presentation/widgets/follow_button.dart';
+import 'package:pumpkinsocial/features/follow/presentation/widgets/user_stats_widget.dart';
 import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
 import '../bloc/profile_state.dart';
-import '../widgets/profile_stats.dart';
 import '../widgets/profile_posts_grid.dart';
 import '../widgets/profile_edit_button.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
 
 class ProfilePage extends StatelessWidget {
   final String userId;
 
-  const ProfilePage({
-    super.key,
-    required this.userId,
-  });
+  const ProfilePage({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => ProfileBloc(
-        profileRepository: context.read(),
-        authBloc: context.read(),
-      )..add(ProfileLoadRequested(userId: userId)),
+      create:
+          (context) => ProfileBloc(
+            profileRepository: context.read(),
+            authBloc: context.read(),
+          )..add(ProfileLoadRequested(userId: userId)),
       child: ProfileView(userId: userId),
     );
   }
@@ -31,10 +32,7 @@ class ProfilePage extends StatelessWidget {
 class ProfileView extends StatefulWidget {
   final String userId;
 
-  const ProfileView({
-    super.key,
-    required this.userId,
-  });
+  const ProfileView({super.key, required this.userId});
 
   @override
   State<ProfileView> createState() => _ProfileViewState();
@@ -82,10 +80,10 @@ class _ProfileViewState extends State<ProfileView>
                 // App bar
                 SliverAppBar(
                   title: Text(
-                    state.username.isNotEmpty ? '@${state.username}' : 'Profile',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    state.username.isNotEmpty
+                        ? '@${state.username}'
+                        : 'Profile',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   floating: true,
                   snap: true,
@@ -101,9 +99,7 @@ class _ProfileViewState extends State<ProfileView>
                 // Profile content
                 if (state.isLoading)
                   const SliverFillRemaining(
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: Center(child: CircularProgressIndicator()),
                   )
                 else if (state.isLoaded) ...[
                   // Profile header
@@ -122,31 +118,48 @@ class _ProfileViewState extends State<ProfileView>
                                 size: 90,
                               ),
                               const SizedBox(width: 20),
-                              
+
                               // Stats
                               Expanded(
-                                child: ProfileStats(
-                                  postsCount: state.postsCount,
-                                  followersCount: state.followersCount,
-                                  followingCount: state.followingCount,
+                                child: UserStatsWidget(
+                                  userId: widget.userId,
+                                  onFollowersTapped: () {
+                                    // TODO: Navigate to followers list
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Followers list coming soon!',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  onFollowingTapped: () {
+                                    // TODO: Navigate to following list
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Following list coming soon!',
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ],
                           ),
-                          
+
                           const SizedBox(height: 16),
-                          
+
                           // Display name and bio
                           if (state.displayName.isNotEmpty) ...[
                             Text(
                               state.displayName,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 4),
                           ],
-                          
+
                           if (state.bio.isNotEmpty) ...[
                             Text(
                               state.bio,
@@ -154,7 +167,7 @@ class _ProfileViewState extends State<ProfileView>
                             ),
                             const SizedBox(height: 16),
                           ],
-                          
+
                           // Action buttons
                           if (state.isOwnProfile)
                             ProfileEditButton(
@@ -164,23 +177,34 @@ class _ProfileViewState extends State<ProfileView>
                             Row(
                               children: [
                                 Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      // TODO: Implement follow functionality
-                                    },
-                                    child: const Text('Follow'),
+                                  child: FollowButton(
+                                    targetUserId: widget.userId,
+                                    height: 36,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    // TODO: Implement message functionality
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey[200],
-                                    foregroundColor: Colors.black,
+                                SizedBox(
+                                  height: 36,
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      // TODO: Implement message functionality
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Messages coming soon!',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                        color: Theme.of(context).dividerColor,
+                                      ),
+                                    ),
+                                    child: const Icon(Icons.message),
                                   ),
-                                  child: const Icon(Icons.message),
                                 ),
                               ],
                             ),
@@ -252,9 +276,7 @@ class _ProfileViewState extends State<ProfileView>
                             SizedBox(height: 8),
                             Text(
                               'Coming soon...',
-                              style: TextStyle(
-                                color: Colors.grey,
-                              ),
+                              style: TextStyle(color: Colors.grey),
                             ),
                           ],
                         ),
@@ -304,47 +326,77 @@ class _ProfileViewState extends State<ProfileView>
   void _showProfileMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edit Profile'),
-              onTap: () {
-                Navigator.pop(context);
-                _showEditProfile(context);
-              },
+      builder:
+          (context) => Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.edit),
+                  title: const Text('Edit Profile'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showEditProfile(context);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.settings),
+                  title: const Text('Settings'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Navigate to settings
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Log Out'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showLogoutConfirmation(context);
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Navigate to settings
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Log Out'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Implement logout
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
   void _showEditProfile(BuildContext context) {
     // TODO: Navigate to edit profile page
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Edit profile coming soon...'),
-      ),
+      const SnackBar(content: Text('Edit profile coming soon...')),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    // Capture the AuthBloc reference before opening dialog
+    final authBloc = context.read<AuthBloc>();
+    
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Log Out'),
+          content: const Text('Are you sure you want to log out?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                // Trigger logout using captured reference
+                authBloc.add(const SignOutRequested());
+              },
+              child: const Text('Log Out'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -353,11 +405,7 @@ class ProfilePicture extends StatelessWidget {
   final String? imageUrl;
   final double size;
 
-  const ProfilePicture({
-    super.key,
-    this.imageUrl,
-    this.size = 90,
-  });
+  const ProfilePicture({super.key, this.imageUrl, this.size = 90});
 
   @override
   Widget build(BuildContext context) {
@@ -367,36 +415,32 @@ class ProfilePicture extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.grey[300],
-        border: Border.all(
-          color: Theme.of(context).dividerColor,
-          width: 0.5,
-        ),
+        border: Border.all(color: Theme.of(context).dividerColor, width: 0.5),
       ),
       child: ClipOval(
-        child: imageUrl != null
-            ? CachedNetworkImage(
-                imageUrl: imageUrl!,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[300],
-                  child: Icon(
-                    Icons.person,
-                    size: size * 0.6,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              )
-            : Icon(
-                Icons.person,
-                size: size * 0.6,
-                color: Colors.grey[600],
-              ),
+        child:
+            imageUrl != null
+                ? CachedNetworkImage(
+                  imageUrl: imageUrl!,
+                  fit: BoxFit.cover,
+                  placeholder:
+                      (context, url) => Container(
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                  errorWidget:
+                      (context, url, error) => Container(
+                        color: Colors.grey[300],
+                        child: Icon(
+                          Icons.person,
+                          size: size * 0.6,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                )
+                : Icon(Icons.person, size: size * 0.6, color: Colors.grey[600]),
       ),
     );
   }
