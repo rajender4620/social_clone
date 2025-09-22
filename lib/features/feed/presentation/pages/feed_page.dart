@@ -183,7 +183,7 @@ class _FeedPageState extends State<FeedPage> {
                   );
                 },
                 onCommentPressed: () {
-                  // TODO: Navigate to comments
+                  context.push('/comments/${post.id}', extra: post);
                 },
                 onSharePressed: () {
                   // TODO: Implement share functionality

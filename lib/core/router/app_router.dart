@@ -5,8 +5,10 @@ import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
 import '../../features/feed/presentation/pages/feed_page.dart';
+import '../../features/feed/presentation/pages/comments_page.dart';
 import '../../features/post/presentation/pages/post_creation_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/feed/data/models/post_model.dart';
 
 // Custom Listenable that listens to AuthBloc state changes
 class AuthBlocListenable extends ChangeNotifier {
@@ -64,6 +66,13 @@ class AppRouter {
         builder: (context, state) {
           final userId = state.pathParameters['userId']!;
           return ProfilePage(userId: userId);
+        },
+      ),
+      GoRoute(
+        path: '/comments/:postId',
+        builder: (context, state) {
+          final post = state.extra as PostModel;
+          return CommentsPage(post: post);
         },
       ),
     ],

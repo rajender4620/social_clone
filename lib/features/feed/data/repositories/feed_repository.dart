@@ -9,11 +9,9 @@ class FeedRepository {
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
 
-  FeedRepository({
-    FirebaseFirestore? firestore,
-    FirebaseStorage? storage,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance;
+  FeedRepository({FirebaseFirestore? firestore, FirebaseStorage? storage})
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _storage = storage ?? FirebaseStorage.instance;
 
   // Get paginated feed posts
   Future<List<PostModel>> getFeedPosts({
@@ -39,10 +37,8 @@ class FeedRepository {
       query = query.limit(limit);
 
       final snapshot = await query.get();
-      
-      return snapshot.docs
-          .map((doc) => PostModel.fromFirestore(doc))
-          .toList();
+
+      return snapshot.docs.map((doc) => PostModel.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception('Failed to fetch feed posts: $e');
     }
@@ -67,10 +63,8 @@ class FeedRepository {
       query = query.limit(limit);
 
       final snapshot = await query.get();
-      
-      return snapshot.docs
-          .map((doc) => PostModel.fromFirestore(doc))
-          .toList();
+
+      return snapshot.docs.map((doc) => PostModel.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception('Failed to fetch user posts: $e');
     }
@@ -121,10 +115,10 @@ class FeedRepository {
   }) async {
     try {
       final postRef = _firestore.collection('posts').doc(postId);
-      
+
       return await _firestore.runTransaction((transaction) async {
         final postDoc = await transaction.get(postRef);
-        
+
         if (!postDoc.exists) {
           throw Exception('Post not found');
         }
@@ -164,7 +158,7 @@ class FeedRepository {
       query = query.limit(limit);
 
       final snapshot = await query.get();
-      
+
       return snapshot.docs
           .map((doc) => CommentModel.fromFirestore(doc))
           .toList();
@@ -197,11 +191,12 @@ class FeedRepository {
         );
 
         // Add comment to subcollection
-        final commentRef = _firestore
-            .collection('posts')
-            .doc(postId)
-            .collection('comments')
-            .doc();
+        final commentRef =
+            _firestore
+                .collection('posts')
+                .doc(postId)
+                .collection('comments')
+                .doc();
 
         transaction.set(commentRef, commentData.toFirestore());
 
@@ -231,10 +226,10 @@ class FeedRepository {
           .doc(postId)
           .collection('comments')
           .doc(commentId);
-      
+
       return await _firestore.runTransaction((transaction) async {
         final commentDoc = await transaction.get(commentRef);
-        
+
         if (!commentDoc.exists) {
           throw Exception('Comment not found');
         }
@@ -259,13 +254,14 @@ class FeedRepository {
     try {
       await _firestore.runTransaction((transaction) async {
         final postRef = _firestore.collection('posts').doc(postId);
-        
+
         // Delete all comments first
-        final commentsSnapshot = await _firestore
-            .collection('posts')
-            .doc(postId)
-            .collection('comments')
-            .get();
+        final commentsSnapshot =
+            await _firestore
+                .collection('posts')
+                .doc(postId)
+                .collection('comments')
+                .get();
 
         for (final commentDoc in commentsSnapshot.docs) {
           transaction.delete(commentDoc.reference);
@@ -295,8 +291,10 @@ class FeedRepository {
 
       query = query.limit(limit);
 
-      return query.snapshots().map((snapshot) =>
-          snapshot.docs.map((doc) => PostModel.fromFirestore(doc)).toList());
+      return query.snapshots().map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => PostModel.fromFirestore(doc)).toList(),
+      );
     } catch (e) {
       throw Exception('Failed to get feed stream: $e');
     }
@@ -306,11 +304,12 @@ class FeedRepository {
   Future<String> _uploadPostImage(File imageFile) async {
     try {
       print('📤 Starting image upload...');
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}.jpg';
+      final fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}.jpg';
       final ref = _storage.ref().child('posts').child(fileName);
-      
+
       print('📁 Upload path: posts/$fileName');
-      
+
       // Add metadata for better web support
       final metadata = SettableMetadata(
         contentType: 'image/jpeg',
@@ -319,29 +318,33 @@ class FeedRepository {
           'upload_time': DateTime.now().toIso8601String(),
         },
       );
-      
+
       print('⏳ Uploading to Firebase Storage...');
       final uploadTask = ref.putFile(imageFile, metadata);
-      
+
       // Monitor upload progress
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
         final progress = snapshot.bytesTransferred / snapshot.totalBytes;
         print('🔄 Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
       });
-      
+
       await uploadTask;
       print('✅ Upload complete, getting download URL...');
-      
+
       final downloadURL = await ref.getDownloadURL();
       print('🔗 Download URL: $downloadURL');
-      
+
       return downloadURL;
     } catch (e) {
       print('❌ Image upload failed: $e');
       if (e.toString().contains('storage/unauthorized')) {
-        throw Exception('Storage permission denied. Please check Firebase Storage rules.');
+        throw Exception(
+          'Storage permission denied. Please check Firebase Storage rules.',
+        );
       } else if (e.toString().contains('network')) {
-        throw Exception('Network error during upload. Please check your connection.');
+        throw Exception(
+          'Network error during upload. Please check your connection.',
+        );
       } else {
         throw Exception('Failed to upload image: $e');
       }

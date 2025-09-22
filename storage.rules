@@ -1,17 +1,8 @@
 // Firebase Storage security rules for PumpkinSocial
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow all authenticated users to read any images
-    // This is necessary for the feed to display images
-    match /{allPaths=**} {
-      allow read: if true; // Public read access for images
-    }
-    
     // Profile images: users can upload their own profile picture
     match /profile_images/{userId} {
       allow read: if true; // Anyone can read profile images
@@ -26,7 +17,7 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
     
-    // Default deny rule for any other paths
+    // Default: Deny access to any other paths not explicitly allowed
     match /{allPaths=**} {
       allow read, write: if false;
     }

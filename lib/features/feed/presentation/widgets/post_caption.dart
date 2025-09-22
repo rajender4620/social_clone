@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/models/post_model.dart';
 
 class PostCaption extends StatefulWidget {
@@ -78,21 +79,26 @@ class _PostCaptionState extends State<PostCaption> {
             const SizedBox(height: 8),
           ],
 
-          // Comments count and "View comments" button
-          if (widget.post.commentsCount > 0) ...[
-            GestureDetector(
-              onTap: () {
-                // TODO: Navigate to comments
-              },
-              child: Text(
-                _getCommentsText(widget.post.commentsCount),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
+          // Comments section
+          GestureDetector(
+            onTap: () {
+              context.push('/comments/${widget.post.id}', extra: widget.post);
+            },
+            child: widget.post.commentsCount > 0 
+                ? Text(
+                    _getCommentsText(widget.post.commentsCount),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  )
+                : Text(
+                    'Add a comment...',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 8),
 
           // Timestamp
           Text(
