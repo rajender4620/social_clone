@@ -4,13 +4,13 @@ import '../../data/models/post_model.dart';
 import 'post_header.dart';
 import 'post_actions.dart';
 import 'post_caption.dart';
+import '../../../../shared/services/haptic_service.dart';
 
 class PostWidget extends StatelessWidget {
   final PostModel post;
   final String? currentUserId;
   final VoidCallback? onLikePressed;
   final VoidCallback? onCommentPressed;
-  final VoidCallback? onSharePressed;
   final VoidCallback? onAuthorTapped;
   final VoidCallback? onImageTapped;
 
@@ -20,7 +20,6 @@ class PostWidget extends StatelessWidget {
     this.currentUserId,
     this.onLikePressed,
     this.onCommentPressed,
-    this.onSharePressed,
     this.onAuthorTapped,
     this.onImageTapped,
   });
@@ -52,7 +51,10 @@ class PostWidget extends StatelessWidget {
 
           // Post Image
           GestureDetector(
-            onTap: onImageTapped,
+            onTap: () {
+              HapticService.navigation();
+              onImageTapped?.call();
+            },
             child: Container(
               width: double.infinity,
               constraints: const BoxConstraints(
@@ -103,7 +105,6 @@ class PostWidget extends StatelessWidget {
             isLiked: isLiked,
             onLikePressed: onLikePressed,
             onCommentPressed: onCommentPressed,
-            onSharePressed: onSharePressed,
           ),
 
           // Post Caption and Metadata

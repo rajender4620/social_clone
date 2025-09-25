@@ -173,6 +173,6 @@ class CommentModel extends Equatable {
 
   @override
   String toString() {
-    return 'CommentModel(id: $id, authorUsername: $authorUsername, content: ${content.length > 30 ? content.substring(0, 30) + "..." : content}, likesCount: $likesCount)';
+    return 'CommentModel(id: $id, authorUsername: $authorUsername, content: ${content.length > 30 ? "${content.substring(0, 30)}..." : content}, likesCount: $likesCount)';
   }
 }

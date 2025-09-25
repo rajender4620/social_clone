@@ -9,6 +9,10 @@ import '../widgets/feed_loading_widget.dart';
 import '../widgets/feed_error_widget.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../../shared/widgets/skeleton_loaders.dart';
+import '../../../../shared/services/haptic_service.dart';
+import '../../../../shared/widgets/custom_refresh_indicator.dart';
+import '../../../../shared/widgets/animated_list_item.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -50,6 +54,7 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Future<void> _onRefresh() async {
+    HapticService.refresh();
     context.read<FeedBloc>().add(const FeedRefreshRequested());
   }
 
@@ -62,27 +67,6 @@ class _FeedPageState extends State<FeedPage> {
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.secondary,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.camera_alt_outlined,
-                size: 18,
-                color: theme.colorScheme.onPrimary,
-              ),
-            ),
-            const SizedBox(width: 12),
             Text(
               'PumpkinSocial',
               style: theme.textTheme.titleLarge?.copyWith(
@@ -160,7 +144,7 @@ class _FeedPageState extends State<FeedPage> {
           return _buildEmptyFeed();
         }
 
-        return RefreshIndicator(
+        return PumpkinRefreshIndicator(
           onRefresh: _onRefresh,
           child: ListView.builder(
             controller: _scrollController,
@@ -174,26 +158,26 @@ class _FeedPageState extends State<FeedPage> {
               }
 
               final post = state.posts[index];
-              return PostWidget(
-                post: post,
-                currentUserId: currentUserId,
-                onLikePressed: () {
-                  context.read<FeedBloc>().add(
-                    PostLikeToggled(postId: post.id, userId: currentUserId),
-                  );
-                },
-                onCommentPressed: () {
-                  context.push('/comments/${post.id}', extra: post);
-                },
-                onSharePressed: () {
-                  // TODO: Implement share functionality
-                },
-                onAuthorTapped: () {
-                  context.push('/profile/${post.authorId}');
-                },
-                onImageTapped: () {
-                  // TODO: Navigate to post detail
-                },
+              return AnimatedPostItem(
+                index: index,
+                child: PostWidget(
+                  post: post,
+                  currentUserId: currentUserId,
+                  onLikePressed: () {
+                    context.read<FeedBloc>().add(
+                      PostLikeToggled(postId: post.id, userId: currentUserId),
+                    );
+                  },
+                  onCommentPressed: () {
+                    context.push('/comments/${post.id}', extra: post);
+                  },
+                  onAuthorTapped: () {
+                    context.push('/profile/${post.authorId}');
+                  },
+                  onImageTapped: () {
+                    context.push('/post/${post.id}', extra: post);
+                  },
+                ),
               );
             },
           ),
@@ -204,7 +188,7 @@ class _FeedPageState extends State<FeedPage> {
   Widget _buildEmptyFeed() {
     final theme = Theme.of(context);
 
-    return RefreshIndicator(
+    return PumpkinRefreshIndicator(
       onRefresh: _onRefresh,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -273,16 +257,9 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Widget _buildLoadingIndicator() {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.all(16),
-      child: Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: theme.colorScheme.primary,
-        ),
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: const PostSkeleton(),
     );
   }
 }

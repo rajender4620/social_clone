@@ -8,6 +8,8 @@ import '../bloc/post_creation_state.dart';
 import '../widgets/image_preview_widget.dart';
 import '../widgets/caption_input_widget.dart';
 import '../widgets/location_input_widget.dart';
+import '../../../../shared/services/haptic_service.dart';
+import '../../../../shared/services/snackbar_service.dart';
 import '../../../../shared/services/image_picker_service.dart';
 import 'package:image_picker/image_picker.dart' as picker;
 
@@ -71,14 +73,11 @@ class PostCreationPage extends StatelessWidget {
           }
 
           if (state.isCompleted) {
+            // Add haptic feedback for success
+            HapticService.postCreated();
+            
             // Show success message
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Post shared successfully!'),
-                backgroundColor: Colors.green,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            context.showSuccessSnackbar('Post shared successfully! 🎉');
 
             // Navigate back to feed
             context.go('/home');

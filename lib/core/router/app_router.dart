@@ -6,6 +6,8 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
 import '../../features/feed/presentation/pages/feed_page.dart';
 import '../../features/feed/presentation/pages/comments_page.dart';
+import '../../features/feed/presentation/pages/post_detail_page.dart';
+import '../../features/feed/presentation/pages/saved_posts_page.dart';
 import '../../features/post/presentation/pages/post_creation_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/feed/data/models/post_model.dart';
@@ -74,6 +76,17 @@ class AppRouter {
           final post = state.extra as PostModel;
           return CommentsPage(post: post);
         },
+      ),
+      GoRoute(
+        path: '/post/:postId',
+        builder: (context, state) {
+          final post = state.extra as PostModel;
+          return PostDetailPage(post: post);
+        },
+      ),
+      GoRoute(
+        path: '/saved-posts',
+        builder: (context, state) => const SavedPostsPage(),
       ),
     ],
     redirect: (context, state) {

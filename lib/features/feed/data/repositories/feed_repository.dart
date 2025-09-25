@@ -350,4 +350,126 @@ class FeedRepository {
       }
     }
   }
+
+  // Bookmark functionality
+  
+  // Toggle bookmark on a post
+  Future<bool> togglePostBookmark({
+    required String postId,
+    required String userId,
+  }) async {
+    try {
+      final bookmarkRef = _firestore
+          .collection('bookmarks')
+          .doc('${userId}_$postId');
+
+      return await _firestore.runTransaction((transaction) async {
+        final bookmarkDoc = await transaction.get(bookmarkRef);
+
+        if (bookmarkDoc.exists) {
+          // Remove bookmark
+          transaction.delete(bookmarkRef);
+          return false;
+        } else {
+          // Add bookmark
+          transaction.set(bookmarkRef, {
+            'userId': userId,
+            'postId': postId,
+            'createdAt': Timestamp.fromDate(DateTime.now()),
+          });
+          return true;
+        }
+      });
+    } catch (e) {
+      throw Exception('Failed to toggle bookmark: $e');
+    }
+  }
+
+  // Check if post is bookmarked by user
+  Future<bool> isPostBookmarked({
+    required String postId,
+    required String userId,
+  }) async {
+    try {
+      final bookmarkDoc = await _firestore
+          .collection('bookmarks')
+          .doc('${userId}_$postId')
+          .get();
+
+      return bookmarkDoc.exists;
+    } catch (e) {
+      throw Exception('Failed to check bookmark status: $e');
+    }
+  }
+
+  // Get user's bookmarked posts
+  Future<List<PostModel>> getBookmarkedPosts({
+    required String userId,
+    int limit = 20,
+    DocumentSnapshot? lastDocument,
+  }) async {
+    try {
+      Query bookmarkQuery = _firestore
+          .collection('bookmarks')
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true);
+
+      if (lastDocument != null) {
+        bookmarkQuery = bookmarkQuery.startAfterDocument(lastDocument);
+      }
+
+      bookmarkQuery = bookmarkQuery.limit(limit);
+
+      final bookmarkSnapshot = await bookmarkQuery.get();
+      
+      if (bookmarkSnapshot.docs.isEmpty) {
+        return [];
+      }
+
+      // Get the post IDs from bookmarks
+      final postIds = bookmarkSnapshot.docs
+          .map((doc) => (doc.data() as Map<String, dynamic>)['postId'] as String)
+          .toList();
+
+      // Fetch the actual posts
+      final posts = <PostModel>[];
+      for (final postId in postIds) {
+        try {
+          final postDoc = await _firestore.collection('posts').doc(postId).get();
+          if (postDoc.exists) {
+            posts.add(PostModel.fromFirestore(postDoc));
+          }
+        } catch (e) {
+          // Skip posts that no longer exist
+          continue;
+        }
+      }
+
+      return posts;
+    } catch (e) {
+      throw Exception('Failed to fetch bookmarked posts: $e');
+    }
+  }
+
+  // Get bookmark status for multiple posts
+  Future<Map<String, bool>> getBookmarkStatusForPosts({
+    required List<String> postIds,
+    required String userId,
+  }) async {
+    try {
+      final results = <String, bool>{};
+      
+      for (final postId in postIds) {
+        final isBookmarked = await isPostBookmarked(
+          postId: postId, 
+          userId: userId,
+        );
+        results[postId] = isBookmarked;
+      }
+      
+      return results;
+    } catch (e) {
+      throw Exception('Failed to get bookmark statuses: $e');
+    }
+  }
 }

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pumpkinsocial/features/follow/presentation/widgets/follow_button.dart';
 import 'package:pumpkinsocial/features/follow/presentation/widgets/user_stats_widget.dart';
+import '../../../../shared/widgets/skeleton_loaders.dart';
+import '../../../../shared/services/snackbar_service.dart';
+import '../../../../shared/widgets/custom_refresh_indicator.dart';
 import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
 import '../bloc/profile_state.dart';
@@ -60,16 +64,13 @@ class _ProfileViewState extends State<ProfileView>
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {
           if (state.hasError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage ?? 'An error occurred'),
-                backgroundColor: Colors.red,
-              ),
+            context.showErrorSnackbar(
+              state.errorMessage ?? 'Failed to load profile',
             );
           }
         },
         builder: (context, state) {
-          return RefreshIndicator(
+          return PumpkinRefreshIndicator(
             onRefresh: () async {
               context.read<ProfileBloc>().add(
                 ProfileRefreshRequested(userId: widget.userId),
@@ -97,10 +98,15 @@ class _ProfileViewState extends State<ProfileView>
                 ),
 
                 // Profile content
-                if (state.isLoading)
-                  const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator()),
-                  )
+                if (state.isLoading) ...[
+                  // Profile header skeleton
+                  const SliverToBoxAdapter(
+                    child: ProfileHeaderSkeleton(),
+                  ),
+                  
+                  // Posts grid skeleton
+                  const ProfilePostsGridSkeleton(itemCount: 12),
+                ]
                 else if (state.isLoaded) ...[
                   // Profile header
                   SliverToBoxAdapter(
@@ -125,22 +131,14 @@ class _ProfileViewState extends State<ProfileView>
                                   userId: widget.userId,
                                   onFollowersTapped: () {
                                     // TODO: Navigate to followers list
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Followers list coming soon!',
-                                        ),
-                                      ),
+                                    context.showInfoSnackbar(
+                                      'Followers list coming soon! 👥',
                                     );
                                   },
                                   onFollowingTapped: () {
                                     // TODO: Navigate to following list
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Following list coming soon!',
-                                        ),
-                                      ),
+                                    context.showInfoSnackbar(
+                                      'Following list coming soon! 🚀',
                                     );
                                   },
                                 ),
@@ -188,14 +186,8 @@ class _ProfileViewState extends State<ProfileView>
                                   child: OutlinedButton(
                                     onPressed: () {
                                       // TODO: Implement message functionality
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Messages coming soon!',
-                                          ),
-                                        ),
+                                      context.showInfoSnackbar(
+                                        'Messages coming soon! 💬',
                                       );
                                     },
                                     style: OutlinedButton.styleFrom(
@@ -251,6 +243,9 @@ class _ProfileViewState extends State<ProfileView>
                         context.read<ProfileBloc>().add(
                           ProfilePostsLoadMoreRequested(userId: widget.userId),
                         );
+                      },
+                      onPostTapped: (post) {
+                        context.push('/post/${post.id}', extra: post);
                       },
                     )
                   else
@@ -341,6 +336,14 @@ class _ProfileViewState extends State<ProfileView>
                   },
                 ),
                 ListTile(
+                  leading: const Icon(Icons.bookmark),
+                  title: const Text('Saved Posts'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/saved-posts');
+                  },
+                ),
+                ListTile(
                   leading: const Icon(Icons.settings),
                   title: const Text('Settings'),
                   onTap: () {
@@ -364,8 +367,8 @@ class _ProfileViewState extends State<ProfileView>
 
   void _showEditProfile(BuildContext context) {
     // TODO: Navigate to edit profile page
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edit profile coming soon...')),
+    context.showInfoSnackbar(
+      'Edit profile coming soon! ✏️',
     );
   }
 

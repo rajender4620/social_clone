@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/post_model.dart';
+import '../../../../shared/services/haptic_service.dart';
 
 class PostCaption extends StatefulWidget {
   final PostModel post;
@@ -82,6 +83,7 @@ class _PostCaptionState extends State<PostCaption> {
           // Comments section
           GestureDetector(
             onTap: () {
+              HapticService.navigation();
               context.push('/comments/${widget.post.id}', extra: widget.post);
             },
             child: widget.post.commentsCount > 0 

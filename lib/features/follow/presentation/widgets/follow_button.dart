@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/follow_bloc.dart';
 import '../bloc/follow_event.dart';
 import '../bloc/follow_state.dart';
+import '../../../../shared/services/haptic_service.dart';
+import '../../../../shared/services/snackbar_service.dart';
 
 class FollowButton extends StatelessWidget {
   final String targetUserId;
@@ -55,11 +57,8 @@ class _FollowButtonView extends StatelessWidget {
     return BlocConsumer<FollowBloc, FollowState>(
       listener: (context, state) {
         if (state.hasError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.errorMessage ?? 'An error occurred'),
-              backgroundColor: Colors.red,
-            ),
+          context.showErrorSnackbar(
+            state.errorMessage ?? 'Failed to follow user',
           );
           // Clear error after showing
           context.read<FollowBloc>().add(const FollowErrorCleared());
@@ -111,6 +110,15 @@ class _FollowButtonView extends StatelessWidget {
   }
 
   void _onButtonPressed(BuildContext context) {
+    final isFollowing = context.read<FollowBloc>().state.isFollowing;
+    
+    // Add haptic feedback based on action
+    if (isFollowing) {
+      HapticService.unfollow();
+    } else {
+      HapticService.follow();
+    }
+    
     context.read<FollowBloc>().add(
       FollowToggleRequested(targetUserId: targetUserId),
     );

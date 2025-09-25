@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../feed/data/models/post_model.dart';
+import '../../../../shared/widgets/animated_list_item.dart';
 
 class ProfilePostsGrid extends StatefulWidget {
   final List<PostModel> posts;
@@ -137,9 +138,12 @@ class _ProfilePostsGridState extends State<ProfilePostsGrid> {
           (context, index) {
             if (index < widget.posts.length) {
               final post = widget.posts[index];
-              return _PostGridItem(
-                post: post,
-                onTap: () => widget.onPostTapped?.call(post),
+              return AnimatedGridItem(
+                index: index,
+                child: _PostGridItem(
+                  post: post,
+                  onTap: () => widget.onPostTapped?.call(post),
+                ),
               );
             } else if (index == widget.posts.length && widget.hasMorePosts) {
               return const _LoadingGridItem();

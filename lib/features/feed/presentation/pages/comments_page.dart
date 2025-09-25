@@ -9,6 +9,10 @@ import '../widgets/comment_input_widget.dart';
 import '../../data/models/post_model.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../../shared/widgets/skeleton_loaders.dart';
+import '../../../../shared/services/snackbar_service.dart';
+import '../../../../shared/widgets/custom_refresh_indicator.dart';
+import '../../../../shared/widgets/animated_list_item.dart';
 
 class CommentsPage extends StatefulWidget {
   final PostModel post;
@@ -157,18 +161,12 @@ class _CommentsPageState extends State<CommentsPage> {
               child: BlocConsumer<CommentsBloc, CommentsState>(
                 listener: (context, state) {
                   if (state.hasError) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(state.errorMessage ?? 'An error occurred'),
-                        backgroundColor: theme.colorScheme.error,
-                        action: SnackBarAction(
-                          label: 'Dismiss',
-                          textColor: theme.colorScheme.onError,
-                          onPressed: () {
-                            context.read<CommentsBloc>().add(const CommentsErrorCleared());
-                          },
-                        ),
-                      ),
+                    context.showErrorSnackbar(
+                      state.errorMessage ?? 'Failed to load comments',
+                      actionLabel: 'Dismiss',
+                      onActionPressed: () {
+                        context.read<CommentsBloc>().add(const CommentsErrorCleared());
+                      },
                     );
                   }
                 },
@@ -230,7 +228,7 @@ class _CommentsPageState extends State<CommentsPage> {
     switch (state.status) {
       case CommentsStatus.initial:
       case CommentsStatus.loading:
-        return const Center(child: CircularProgressIndicator());
+        return const CommentsSkeleton(itemCount: 6);
 
       case CommentsStatus.error:
         return Center(
@@ -271,7 +269,7 @@ class _CommentsPageState extends State<CommentsPage> {
           return _buildEmptyComments(theme);
         }
 
-        return RefreshIndicator(
+        return PumpkinRefreshIndicator(
           onRefresh: _onRefresh,
           child: ListView.builder(
             controller: _scrollController,
@@ -285,25 +283,28 @@ class _CommentsPageState extends State<CommentsPage> {
               }
 
               final comment = state.comments[index];
-              return BlocBuilder<AuthBloc, AuthState>(
-                builder: (context, authState) {
-                  return CommentWidget(
-                    comment: comment,
-                    currentUserId: authState.user.uid,
-                    onLikePressed: () {
-                      context.read<CommentsBloc>().add(
-                        CommentLikeToggled(
-                          postId: widget.post.id,
-                          commentId: comment.id,
-                          userId: authState.user.uid,
-                        ),
-                      );
-                    },
-                    onAuthorTapped: () {
-                      context.push('/profile/${comment.authorId}');
-                    },
-                  );
-                },
+              return AnimatedCommentItem(
+                index: index,
+                child: BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, authState) {
+                    return CommentWidget(
+                      comment: comment,
+                      currentUserId: authState.user.uid,
+                      onLikePressed: () {
+                        context.read<CommentsBloc>().add(
+                          CommentLikeToggled(
+                            postId: widget.post.id,
+                            commentId: comment.id,
+                            userId: authState.user.uid,
+                          ),
+                        );
+                      },
+                      onAuthorTapped: () {
+                        context.push('/profile/${comment.authorId}');
+                      },
+                    );
+                  },
+                ),
               );
             },
           ),
@@ -312,7 +313,7 @@ class _CommentsPageState extends State<CommentsPage> {
   }
 
   Widget _buildEmptyComments(ThemeData theme) {
-    return RefreshIndicator(
+    return PumpkinRefreshIndicator(
       onRefresh: _onRefresh,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/services/haptic_service.dart';
+import '../../../../shared/services/snackbar_service.dart';
 
 class CommentInputWidget extends StatefulWidget {
   final Function(String) onCommentSubmitted;
@@ -44,6 +46,9 @@ class _CommentInputWidgetState extends State<CommentInputWidget> {
   void _submitComment() {
     final content = _controller.text.trim();
     if (content.isEmpty || widget.isSubmitting) return;
+
+    // Add haptic feedback for comment submission
+    HapticService.comment();
 
     widget.onCommentSubmitted(content);
     _controller.clear();

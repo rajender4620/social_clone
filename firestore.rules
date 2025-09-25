@@ -60,6 +60,19 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
     
+    // Bookmarks collection
+    match /bookmarks/{bookmarkId} {
+      // Users can only read their own bookmarks
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      // Users can only create bookmarks for themselves
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+      // Users can only delete their own bookmarks
+      allow delete: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+    }
+    
     // Notifications (future implementation)
     match /notifications/{notificationId} {
       allow read, write: if request.auth != null && 

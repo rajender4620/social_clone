@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../data/models/comment_model.dart';
+import '../../../../shared/services/haptic_service.dart';
+import '../../../../shared/services/snackbar_service.dart';
 
 class CommentWidget extends StatefulWidget {
   final CommentModel comment;
@@ -48,6 +50,15 @@ class _CommentWidgetState extends State<CommentWidget>
   }
 
   void _onLikePressed() {
+    final isLiked = widget.comment.hasLikeFrom(widget.currentUserId);
+    
+    // Add haptic feedback
+    if (isLiked) {
+      HapticService.unlike();
+    } else {
+      HapticService.like();
+    }
+    
     widget.onLikePressed();
     _likeAnimationController.forward().then((_) {
       _likeAnimationController.reverse();
@@ -160,11 +171,8 @@ class _CommentWidgetState extends State<CommentWidget>
                     GestureDetector(
                       onTap: () {
                         // TODO: Implement reply functionality
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Replies coming soon!'),
-                            duration: Duration(seconds: 2),
-                          ),
+                        context.showInfoSnackbar(
+                          'Replies coming soon! 💬',
                         );
                       },
                       child: Text(

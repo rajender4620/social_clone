@@ -7,6 +7,7 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/feed/data/repositories/feed_repository.dart';
 import 'features/feed/presentation/bloc/feed_bloc.dart';
+import 'features/feed/presentation/bloc/bookmark_bloc.dart';
 import 'features/post/presentation/bloc/post_creation_bloc.dart';
 import 'features/profile/data/repositories/profile_repository.dart';
 import 'features/follow/data/repositories/follow_repository.dart';
@@ -60,6 +61,11 @@ class MyApp extends StatelessWidget {
               imagePickerService: imagePickerService,
               authBloc: authBloc,
               feedBloc: context.read<FeedBloc>(),
+            ),
+          ),
+          BlocProvider<BookmarkBloc>(
+            create: (context) => BookmarkBloc(
+              feedRepository: feedRepository,
             ),
           ),
         ],
