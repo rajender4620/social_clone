@@ -7,6 +7,10 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
       // All authenticated users can read other user profiles
       allow read: if request.auth != null;
+      // TEMPORARY: Allow username uniqueness checks during sign-up (unauthenticated)
+      // This is needed for registration but should be moved to Cloud Functions for better security
+      // TODO: Move username validation to server-side Cloud Functions
+      allow read, list: if request.auth == null;
     }
     
     // Posts collection
@@ -22,6 +26,9 @@ service cloud.firestore {
       // Any authenticated user can update likes field only
       allow update: if request.auth != null &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'updatedAt']);
+      // Allow updating commentsCount when adding comments
+      allow update: if request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentsCount', 'updatedAt']);
         
       // Comments subcollection
       match /comments/{commentId} {
@@ -62,9 +69,9 @@ service cloud.firestore {
     
     // Bookmarks collection
     match /bookmarks/{bookmarkId} {
-      // Users can only read their own bookmarks
-      allow read: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
+      // Users can read and query their own bookmarks
+      allow read, list: if request.auth != null && 
+        (resource == null || request.auth.uid == resource.data.userId);
       // Users can only create bookmarks for themselves
       allow create: if request.auth != null && 
         request.auth.uid == request.resource.data.userId;

@@ -9,11 +9,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
   late final StreamSubscription<User?> _authStatusSubscription;
 
-  AuthBloc({
-    required AuthRepository authRepository,
-  })  : _authRepository = authRepository,
-        super(AuthState.unknown()) {
-    
+  AuthBloc({required AuthRepository authRepository})
+    : _authRepository = authRepository,
+      super(AuthState.unknown()) {
     // Register event handlers
     on<AuthInitialized>(_onAuthInitialized);
     on<SignUpRequested>(_onSignUpRequested);
@@ -25,12 +23,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthErrorCleared>(_onAuthErrorCleared);
 
     // Listen to authentication state changes
-    _authStatusSubscription = _authRepository.authStateChanges.listen(
-      (user) {
-        // Trigger initialization when auth state changes
-        add(const AuthInitialized());
-      },
-    );
+    _authStatusSubscription = _authRepository.authStateChanges.listen((user) {
+      // Trigger initialization when auth state changes
+      add(const AuthInitialized());
+    });
   }
 
   // Initialize authentication state
@@ -61,7 +57,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthState.loading());
-    
+
     try {
       final userModel = await _authRepository.signUpWithEmailAndPassword(
         email: event.email,
@@ -69,9 +65,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         username: event.username,
         displayName: event.displayName,
       );
-      
+
       emit(AuthState.authenticated(userModel));
     } catch (e) {
+      print('❌ Sign up failed: $e');
       emit(AuthState.error(e.toString()));
     }
   }
@@ -82,13 +79,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthState.loading());
-    
+
     try {
       final userModel = await _authRepository.signInWithEmailAndPassword(
         email: event.email,
         password: event.password,
       );
-      
+
       emit(AuthState.authenticated(userModel));
     } catch (e) {
       emit(AuthState.error(e.toString()));
@@ -101,7 +98,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthState.loading());
-    
+
     try {
       final userModel = await _authRepository.signInWithGoogle();
       emit(AuthState.authenticated(userModel));
@@ -116,7 +113,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(state.copyWithLoading());
-    
+
     try {
       await _authRepository.signOut();
       emit(AuthState.unauthenticated());
@@ -136,14 +133,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
 
     emit(state.copyWithLoading());
-    
+
     try {
       final updatedUser = await _authRepository.updateUserProfile(
         displayName: event.displayName,
         bio: event.bio,
         profileImage: event.profileImage,
       );
-      
+
       emit(AuthState.authenticated(updatedUser));
     } catch (e) {
       emit(AuthState.error('Profile update failed: $e'));
@@ -161,7 +158,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
 
     emit(state.copyWithLoading());
-    
+
     try {
       await _authRepository.deleteAccount();
       emit(AuthState.unauthenticated());
@@ -171,10 +168,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   // Clear authentication error
-  void _onAuthErrorCleared(
-    AuthErrorCleared event,
-    Emitter<AuthState> emit,
-  ) {
+  void _onAuthErrorCleared(AuthErrorCleared event, Emitter<AuthState> emit) {
     emit(state.copyWithoutError());
   }
 

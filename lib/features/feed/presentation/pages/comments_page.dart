@@ -13,6 +13,7 @@ import '../../../../shared/widgets/skeleton_loaders.dart';
 import '../../../../shared/services/snackbar_service.dart';
 import '../../../../shared/widgets/custom_refresh_indicator.dart';
 import '../../../../shared/widgets/animated_list_item.dart';
+import '../../../../shared/widgets/custom_avatar_widget.dart';
 
 class CommentsPage extends StatefulWidget {
   final PostModel post;
@@ -98,20 +99,11 @@ class _CommentsPageState extends State<CommentsPage> {
               ),
               child: Row(
                 children: [
-                  // Post author avatar
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                    backgroundImage: widget.post.authorProfileImageUrl != null
-                        ? NetworkImage(widget.post.authorProfileImageUrl!)
-                        : null,
-                    child: widget.post.authorProfileImageUrl == null
-                        ? Icon(
-                            Icons.person,
-                            size: 18,
-                            color: theme.colorScheme.primary,
-                          )
-                        : null,
+                  // Post author avatar with initials fallback
+                  CustomAvatarWidget.small(
+                    imageUrl: widget.post.authorProfileImageUrl,
+                    displayName: widget.post.authorDisplayName,
+                    username: widget.post.authorUsername,
                   ),
                   const SizedBox(width: 12),
                   

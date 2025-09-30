@@ -86,12 +86,12 @@ class _FeedPageState extends State<FeedPage> {
               context.push('/create-post');
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.favorite_border),
-            onPressed: () {
-              // TODO: Navigate to activity/notifications
-            },
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.favorite_border),
+          //   onPressed: () {
+          //     // TODO: Navigate to activity/notifications
+          //   },
+          // ),
           BlocBuilder<AuthBloc, AuthState>(
             builder: (context, authState) {
               return IconButton(

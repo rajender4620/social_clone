@@ -82,13 +82,16 @@ class FeedRepository {
       // Upload image to Firebase Storage
       final imageUrl = await _uploadPostImage(imageFile);
 
+      // Ensure we have proper user data with fallbacks
+      final validatedAuthor = _validateUserDataForComment(author);
+
       // Create post document
       final postData = PostModel(
         id: '', // Will be set by Firestore
         authorId: authorId,
-        authorUsername: author.username,
-        authorDisplayName: author.displayName,
-        authorProfileImageUrl: author.profileImageUrl,
+        authorUsername: validatedAuthor['username']!,
+        authorDisplayName: validatedAuthor['displayName'],
+        authorProfileImageUrl: validatedAuthor['profileImageUrl'],
         imageUrl: imageUrl,
         caption: caption,
         location: location,
@@ -176,14 +179,17 @@ class FeedRepository {
   }) async {
     try {
       return await _firestore.runTransaction((transaction) async {
+        // Ensure we have proper user data with fallbacks
+        final validatedAuthor = _validateUserDataForComment(author);
+
         // Create comment document
         final commentData = CommentModel(
           id: '', // Will be set by Firestore
           postId: postId,
           authorId: authorId,
-          authorUsername: author.username,
-          authorDisplayName: author.displayName,
-          authorProfileImageUrl: author.profileImageUrl,
+          authorUsername: validatedAuthor['username']!,
+          authorDisplayName: validatedAuthor['displayName'],
+          authorProfileImageUrl: validatedAuthor['profileImageUrl'],
           content: content,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
@@ -210,6 +216,7 @@ class FeedRepository {
         return commentData.copyWith(id: commentRef.id);
       });
     } catch (e) {
+      print('❌ Failed to add comment: $e');
       throw Exception('Failed to add comment: $e');
     }
   }
@@ -352,7 +359,7 @@ class FeedRepository {
   }
 
   // Bookmark functionality
-  
+
   // Toggle bookmark on a post
   Future<bool> togglePostBookmark({
     required String postId,
@@ -369,6 +376,7 @@ class FeedRepository {
         if (bookmarkDoc.exists) {
           // Remove bookmark
           transaction.delete(bookmarkRef);
+          print('✅ Removed bookmark');
           return false;
         } else {
           // Add bookmark
@@ -377,10 +385,12 @@ class FeedRepository {
             'postId': postId,
             'createdAt': Timestamp.fromDate(DateTime.now()),
           });
+          print('✅ Added bookmark');
           return true;
         }
       });
     } catch (e) {
+      print('❌ Failed to toggle bookmark: $e');
       throw Exception('Failed to toggle bookmark: $e');
     }
   }
@@ -391,13 +401,17 @@ class FeedRepository {
     required String userId,
   }) async {
     try {
-      final bookmarkDoc = await _firestore
-          .collection('bookmarks')
-          .doc('${userId}_$postId')
-          .get();
+      final docId = '${userId}_$postId';
+      print('🔍 Checking bookmark document: $docId');
 
-      return bookmarkDoc.exists;
+      final bookmarkDoc =
+          await _firestore.collection('bookmarks').doc(docId).get();
+
+      final exists = bookmarkDoc.exists;
+      print('📌 Bookmark exists: $exists');
+      return exists;
     } catch (e) {
+      print('❌ Failed to check bookmark status: $e');
       throw Exception('Failed to check bookmark status: $e');
     }
   }
@@ -421,21 +435,26 @@ class FeedRepository {
       bookmarkQuery = bookmarkQuery.limit(limit);
 
       final bookmarkSnapshot = await bookmarkQuery.get();
-      
+
       if (bookmarkSnapshot.docs.isEmpty) {
         return [];
       }
 
       // Get the post IDs from bookmarks
-      final postIds = bookmarkSnapshot.docs
-          .map((doc) => (doc.data() as Map<String, dynamic>)['postId'] as String)
-          .toList();
+      final postIds =
+          bookmarkSnapshot.docs
+              .map(
+                (doc) =>
+                    (doc.data() as Map<String, dynamic>)['postId'] as String,
+              )
+              .toList();
 
       // Fetch the actual posts
       final posts = <PostModel>[];
       for (final postId in postIds) {
         try {
-          final postDoc = await _firestore.collection('posts').doc(postId).get();
+          final postDoc =
+              await _firestore.collection('posts').doc(postId).get();
           if (postDoc.exists) {
             posts.add(PostModel.fromFirestore(postDoc));
           }
@@ -447,6 +466,7 @@ class FeedRepository {
 
       return posts;
     } catch (e) {
+      print('❌ Failed to fetch bookmarked posts: $e');
       throw Exception('Failed to fetch bookmarked posts: $e');
     }
   }
@@ -458,18 +478,85 @@ class FeedRepository {
   }) async {
     try {
       final results = <String, bool>{};
-      
+
       for (final postId in postIds) {
         final isBookmarked = await isPostBookmarked(
-          postId: postId, 
+          postId: postId,
           userId: userId,
         );
         results[postId] = isBookmarked;
       }
-      
+
       return results;
     } catch (e) {
+      print('❌ Failed to get bookmark statuses: $e');
       throw Exception('Failed to get bookmark statuses: $e');
     }
+  }
+
+  // Helper method to validate and provide fallbacks for user data in comments
+  Map<String, String?> _validateUserDataForComment(UserModel author) {
+    // Ensure username is not empty
+    String username = author.username.trim();
+    if (username.isEmpty) {
+      // Generate username from email as fallback
+      username = _generateUsernameFromEmail(author.email);
+    }
+
+    // Provide displayName fallback
+    String? displayName = author.displayName?.trim();
+    if (displayName == null || displayName.isEmpty) {
+      // Use email prefix as display name fallback
+      displayName = _generateDisplayNameFromEmail(author.email);
+    }
+
+    // Provide default profile image fallback
+    String? profileImageUrl = author.profileImageUrl;
+    if (profileImageUrl == null || profileImageUrl.isEmpty) {
+      // Use a default avatar or avatar service
+      profileImageUrl = _getDefaultAvatarUrl(username);
+    }
+
+    return {
+      'username': username,
+      'displayName': displayName,
+      'profileImageUrl': profileImageUrl,
+    };
+  }
+
+  // Generate username from email
+  String _generateUsernameFromEmail(String email) {
+    final emailPrefix = email.split('@')[0];
+    final cleanUsername = emailPrefix.toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9_]'),
+      '_',
+    );
+    return cleanUsername.isEmpty
+        ? 'user_${DateTime.now().millisecondsSinceEpoch}'
+        : cleanUsername;
+  }
+
+  // Generate display name from email
+  String _generateDisplayNameFromEmail(String email) {
+    final emailPrefix = email.split('@')[0];
+    // Capitalize first letter and replace dots/underscores with spaces
+    final cleanName = emailPrefix.replaceAll(RegExp(r'[._]'), ' ');
+    return cleanName
+        .split(' ')
+        .map(
+          (word) =>
+              word.isNotEmpty
+                  ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
+                  : '',
+        )
+        .where((word) => word.isNotEmpty)
+        .join(' ');
+  }
+
+  // Get default avatar URL (using a free avatar service)
+  String _getDefaultAvatarUrl(String identifier) {
+    // Using DiceBear API for consistent, deterministic avatars
+    // You can also use other services like Gravatar, Identicon, etc.
+    return 'https://api.dicebear.com/7.x/initials/svg?seed=${Uri.encodeComponent(identifier)}&backgroundColor=6366f1&textColor=ffffff';
   }
 }

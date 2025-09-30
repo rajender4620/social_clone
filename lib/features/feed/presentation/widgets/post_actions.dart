@@ -1,11 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../data/models/post_model.dart';
 import '../../data/repositories/feed_repository.dart';
-import '../bloc/bookmark_bloc.dart';
-import '../bloc/bookmark_event.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../../shared/services/haptic_service.dart';
@@ -35,6 +34,16 @@ class _PostActionsState extends State<PostActions>
   late Animation<double> _likeAnimation;
   bool _isBookmarked = false;
   bool _isLoadingBookmark = false;
+
+  // Throttling and debouncing variables
+  Timer? _debounceTimer;
+  DateTime? _lastBookmarkTap;
+  static const Duration _minTapInterval = Duration(
+    milliseconds: 500,
+  ); // Min 500ms between taps
+  static const Duration _debounceDelay = Duration(
+    milliseconds: 300,
+  ); // 300ms debounce
 
   @override
   void initState() {
@@ -69,19 +78,27 @@ class _PostActionsState extends State<PostActions>
   @override
   void dispose() {
     _likeAnimationController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _checkBookmarkStatus() async {
     final authState = context.read<AuthBloc>().state;
-    if (authState.status != AuthStatus.authenticated) return;
+    if (authState.status != AuthStatus.authenticated) {
+      debugPrint('❌ User not authenticated, skipping bookmark check');
+      return;
+    }
 
     try {
+      debugPrint(
+        '🔍 Checking bookmark status for post: ${widget.post.id}, user: ${authState.user.uid}',
+      );
       final feedRepository = context.read<FeedRepository>();
       final isBookmarked = await feedRepository.isPostBookmarked(
         postId: widget.post.id,
         userId: authState.user.uid,
       );
+      debugPrint('📌 Initial bookmark status: $isBookmarked');
 
       if (mounted) {
         setState(() {
@@ -90,33 +107,77 @@ class _PostActionsState extends State<PostActions>
       }
     } catch (e) {
       // Handle error silently for bookmark status
+      debugPrint('❌ Error checking bookmark status: $e');
     }
+  }
+
+  // Throttled bookmark toggle handler - prevents rapid multiple taps
+  void _onBookmarkTapped() {
+    final now = DateTime.now();
+
+    // Check if we're within the minimum tap interval
+    if (_lastBookmarkTap != null &&
+        now.difference(_lastBookmarkTap!) < _minTapInterval) {
+      debugPrint(
+        '⏸️ Bookmark tap throttled - too fast! Time since last: ${now.difference(_lastBookmarkTap!).inMilliseconds}ms',
+      );
+
+      // Give subtle feedback that tap was registered but ignored
+      HapticService.lightImpact();
+      return;
+    }
+
+    // Cancel any existing debounce timer
+    _debounceTimer?.cancel();
+
+    // Set up new debounce timer
+    _debounceTimer = Timer(_debounceDelay, () {
+      _toggleBookmark();
+    });
+
+    debugPrint(
+      '⏳ Bookmark tap registered - debouncing for ${_debounceDelay.inMilliseconds}ms',
+    );
   }
 
   Future<void> _toggleBookmark() async {
     final authState = context.read<AuthBloc>().state;
-    if (authState.status != AuthStatus.authenticated || _isLoadingBookmark)
+    if (authState.status != AuthStatus.authenticated || _isLoadingBookmark) {
+      debugPrint(
+        '⏸️ Bookmark toggle blocked: auth=${authState.status}, loading=$_isLoadingBookmark',
+      );
       return;
+    }
 
+    // Update last tap time to start cooldown period
+    _lastBookmarkTap = DateTime.now();
+
+    // Optimistic update - immediately toggle UI for better responsiveness
+    final optimisticState = !_isBookmarked;
     setState(() {
+      _isBookmarked = optimisticState;
       _isLoadingBookmark = true;
     });
 
     try {
+      debugPrint(
+        '🔄 Toggling bookmark for post: ${widget.post.id}, user: ${authState.user.uid}',
+      );
       final feedRepository = context.read<FeedRepository>();
-      final isBookmarked = await feedRepository.togglePostBookmark(
+      final actualBookmarkState = await feedRepository.togglePostBookmark(
         postId: widget.post.id,
         userId: authState.user.uid,
       );
+      debugPrint('✅ Bookmark toggle result: $actualBookmarkState');
 
       if (mounted) {
         setState(() {
-          _isBookmarked = isBookmarked;
+          _isBookmarked = actualBookmarkState; // Update with real server state
           _isLoadingBookmark = false;
         });
 
         // Add haptic feedback
-        if (isBookmarked) {
+        if (actualBookmarkState) {
           HapticService.buttonPress();
           SnackbarService.showSuccess(context, 'Post saved to your collection');
         } else {
@@ -124,22 +185,15 @@ class _PostActionsState extends State<PostActions>
           SnackbarService.showInfo(context, 'Post removed from saved');
         }
 
-        // Notify bookmark bloc if available
-        try {
-          context.read<BookmarkBloc>().add(
-            BookmarkToggleRequested(
-              postId: widget.post.id,
-              userId: authState.user.uid,
-            ),
-          );
-        } catch (e) {
-          // BookmarkBloc might not be available in all contexts
-        }
+        // Note: Removed BookmarkBloc notification to prevent double-triggering
+        // The bookmark state is managed directly in this widget
       }
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint('❌ Failed to toggle bookmark: $e');
       if (mounted) {
+        // Revert optimistic update on error
         setState(() {
+          _isBookmarked = !optimisticState; // Revert to previous state
           _isLoadingBookmark = false;
         });
         SnackbarService.showError(context, 'Failed to update bookmark');
@@ -311,17 +365,16 @@ class _PostActionsState extends State<PostActions>
               ),
 
               // Share button
-              IconButton(
-                icon: Icon(
-                  Icons.send_outlined,
-                  color: theme.colorScheme.onSurface,
-                  size: 24,
-                ),
-                onPressed: _sharePost,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              ),
-
+              // IconButton(
+              //   icon: Icon(
+              //     Icons.send_outlined,
+              //     color: theme.colorScheme.onSurface,
+              //     size: 24,
+              //   ),
+              //   onPressed: _sharePost,
+              //   padding: EdgeInsets.zero,
+              //   constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              // ),
               const Spacer(),
 
               // Bookmark button
@@ -343,7 +396,7 @@ class _PostActionsState extends State<PostActions>
                           color: theme.colorScheme.onSurface,
                           size: 24,
                         ),
-                onPressed: _isLoadingBookmark ? null : _toggleBookmark,
+                onPressed: _isLoadingBookmark ? null : _onBookmarkTapped,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               ),

@@ -7,6 +7,7 @@ import 'package:pumpkinsocial/features/follow/presentation/widgets/user_stats_wi
 import '../../../../shared/widgets/skeleton_loaders.dart';
 import '../../../../shared/services/snackbar_service.dart';
 import '../../../../shared/widgets/custom_refresh_indicator.dart';
+import '../../../../shared/widgets/custom_avatar_widget.dart';
 import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
 import '../bloc/profile_state.dart';
@@ -118,10 +119,11 @@ class _ProfileViewState extends State<ProfileView>
                           // Profile info and stats
                           Row(
                             children: [
-                              // Profile picture
-                              ProfilePicture(
+                              // Profile picture with initials fallback  
+                              CustomAvatarWidget.extraLarge(
                                 imageUrl: state.profileImageUrl,
-                                size: 90,
+                                displayName: state.displayName,
+                                username: state.username,
                               ),
                               const SizedBox(width: 20),
 

@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- Location permissions for enhanced location picker -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs location access to help you tag your posts with your current location and discover nearby places.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs location access to help you tag your posts with your current location and discover nearby places.</string>
 </dict>
 </plist>

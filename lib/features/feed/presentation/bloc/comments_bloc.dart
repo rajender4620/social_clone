@@ -161,7 +161,8 @@ class CommentsBloc extends Bloc<CommentsEvent, CommentsState> {
         author: currentUser,
         content: event.content,
       );
-
+      
+      print('🚀 New comment added: ${newComment.id}');
       emit(state.copyWithNewComment(newComment));
     } catch (e) {
       emit(state.copyWithError('Failed to add comment: $e'));

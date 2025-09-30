@@ -68,12 +68,13 @@ class AuthRepository {
         throw Exception('Failed to create user');
       }
 
-      // Create user document in Firestore
+      // Create user document in Firestore with proper fallbacks
       final userModel = UserModel(
         uid: user.uid,
         email: email,
         username: username,
-        displayName: displayName,
+        displayName: displayName ?? _generateDisplayNameFromEmail(email),
+        profileImageUrl: _getDefaultAvatarUrl(username),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -145,15 +146,15 @@ class AuthRepository {
         return existingUser;
       }
 
-      // Create new user document if doesn't exist
+      // Create new user document if doesn't exist with proper fallbacks
       final username = await _generateUniqueUsername(user.displayName ?? user.email!.split('@')[0]);
       
       final userModel = UserModel(
         uid: user.uid,
         email: user.email!,
         username: username,
-        displayName: user.displayName,
-        profileImageUrl: user.photoURL,
+        displayName: user.displayName ?? _generateDisplayNameFromEmail(user.email!),
+        profileImageUrl: user.photoURL ?? _getDefaultAvatarUrl(username),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -299,5 +300,22 @@ class AuthRepository {
       default:
         return e.message ?? 'An error occurred during authentication.';
     }
+  }
+
+  // Generate display name from email
+  String _generateDisplayNameFromEmail(String email) {
+    final emailPrefix = email.split('@')[0];
+    // Capitalize first letter and replace dots/underscores with spaces
+    final cleanName = emailPrefix.replaceAll(RegExp(r'[._]'), ' ');
+    return cleanName.split(' ')
+        .map((word) => word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}' : '')
+        .where((word) => word.isNotEmpty)
+        .join(' ');
+  }
+
+  // Get default avatar URL (using a free avatar service)
+  String _getDefaultAvatarUrl(String identifier) {
+    // Using DiceBear API for consistent, deterministic avatars
+    return 'https://api.dicebear.com/7.x/initials/svg?seed=${Uri.encodeComponent(identifier)}&backgroundColor=6366f1&textColor=ffffff';
   }
 }

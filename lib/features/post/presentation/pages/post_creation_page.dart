@@ -7,10 +7,11 @@ import '../bloc/post_creation_event.dart';
 import '../bloc/post_creation_state.dart';
 import '../widgets/image_preview_widget.dart';
 import '../widgets/caption_input_widget.dart';
-import '../widgets/location_input_widget.dart';
+import '../widgets/enhanced_location_picker.dart';
 import '../../../../shared/services/haptic_service.dart';
 import '../../../../shared/services/snackbar_service.dart';
 import '../../../../shared/services/image_picker_service.dart';
+import '../../../../shared/services/location_service.dart';
 import 'package:image_picker/image_picker.dart' as picker;
 
 class PostCreationPage extends StatelessWidget {
@@ -23,34 +24,78 @@ class PostCreationPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
-        title: const Text('New Post'),
+        title: Text(
+          'New Post',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         backgroundColor: theme.colorScheme.surface,
         foregroundColor: theme.colorScheme.onSurface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => context.pop(),
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () {
+            HapticService.lightImpact();
+            context.pop();
+          },
         ),
         actions: [
-          BlocBuilder<PostCreationBloc, PostCreationState>(
-            builder: (context, state) {
-              return TextButton(
-                onPressed: state.canSubmit && !state.isUploading
-                    ? () {
-                        context.read<PostCreationBloc>().add(const PostSubmitted());
-                      }
-                    : null,
-                child: Text(
-                  state.isUploading ? 'Sharing...' : 'Share',
-                  style: TextStyle(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: BlocBuilder<PostCreationBloc, PostCreationState>(
+              builder: (context, state) {
+                return Container(
+                  decoration: BoxDecoration(
                     color: state.canSubmit && !state.isUploading
                         ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withOpacity(0.4),
-                    fontWeight: FontWeight.w600,
+                        : theme.colorScheme.onSurface.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ),
-              );
-            },
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: state.canSubmit && !state.isUploading
+                          ? () {
+                              HapticService.buttonPress();
+                              context.read<PostCreationBloc>().add(const PostSubmitted());
+                            }
+                          : null,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (state.isUploading) ...[
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            Text(
+                              state.isUploading ? 'Sharing...' : 'Share',
+                              style: TextStyle(
+                                color: state.canSubmit && !state.isUploading
+                                    ? Colors.white
+                                    : theme.colorScheme.onSurface.withOpacity(0.4),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -120,12 +165,12 @@ class PostCreationPage extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    // Location Input
-                    LocationInputWidget(
-                      location: state.location,
-                      onLocationChanged: (location) {
+                    // Enhanced Location Picker
+                    EnhancedLocationPicker(
+                      selectedLocation: _parseLocationData(state.location),
+                      onLocationChanged: (locationData) {
                         context.read<PostCreationBloc>().add(
-                          LocationChanged(location: location),
+                          LocationChanged(location: locationData?.shortAddress),
                         );
                       },
                     ),
@@ -134,6 +179,11 @@ class PostCreationPage extends StatelessWidget {
 
                     // Post Guidelines
                     _buildPostGuidelines(theme),
+
+                    const SizedBox(height: 16),
+
+                    // Posting Tips
+                    _buildPostingTips(theme),
                   ],
                 ],
               ),
@@ -141,6 +191,19 @@ class PostCreationPage extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+
+  /// Parse location string to LocationData for the enhanced picker
+  LocationData? _parseLocationData(String? location) {
+    if (location == null || location.isEmpty) return null;
+    
+    // For now, create a simple LocationData from the string
+    // In a real app, you might want to store more detailed location data
+    return LocationData(
+      latitude: 0,
+      longitude: 0,
+      address: location,
     );
   }
 
@@ -174,12 +237,19 @@ class PostCreationPage extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.lightbulb_outline,
-                size: 20,
-                color: theme.colorScheme.primary,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.lightbulb_outline,
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Text(
                 'Tips for Great Posts',
                 style: theme.textTheme.titleSmall?.copyWith(
@@ -189,24 +259,101 @@ class PostCreationPage extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _buildTip(theme, '• Use good lighting for better photo quality'),
-          _buildTip(theme, '• Write engaging captions to connect with your audience'),
-          _buildTip(theme, '• Add location to help others discover your post'),
-          _buildTip(theme, '• Be authentic and share your unique perspective'),
+          const SizedBox(height: 16),
+          _buildEnhancedTip(theme, Icons.wb_sunny_outlined, 'Use good lighting', 'Natural light works best for photos'),
+          _buildEnhancedTip(theme, Icons.edit_outlined, 'Write engaging captions', 'Tell your story and connect with your audience'),
+          _buildEnhancedTip(theme, Icons.location_on_outlined, 'Add your location', 'Help others discover your post'),
+          _buildEnhancedTip(theme, Icons.favorite_outline, 'Be authentic', 'Share your unique perspective', isLast: true),
         ],
       ),
     );
   }
 
-  Widget _buildTip(ThemeData theme, String tip) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Text(
-        tip,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurface.withOpacity(0.7),
+  Widget _buildPostingTips(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.primary.withOpacity(0.2),
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Did you know?',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Posts with locations get 79% more engagement and captions with emojis receive 47% more interactions! 📸✨',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.8),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedTip(ThemeData theme, IconData icon, String title, String description, {bool isLast = false}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(
+              icon,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

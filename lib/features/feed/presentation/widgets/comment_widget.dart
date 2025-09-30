@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../data/models/comment_model.dart';
-import '../../../../shared/services/haptic_service.dart';
 import '../../../../shared/services/snackbar_service.dart';
+import '../../../../shared/widgets/custom_avatar_widget.dart';
 
 class CommentWidget extends StatefulWidget {
   final CommentModel comment;
@@ -22,76 +21,23 @@ class CommentWidget extends StatefulWidget {
   State<CommentWidget> createState() => _CommentWidgetState();
 }
 
-class _CommentWidgetState extends State<CommentWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _likeAnimationController;
-  late Animation<double> _likeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _likeAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-    _likeAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.2,
-    ).animate(CurvedAnimation(
-      parent: _likeAnimationController,
-      curve: Curves.elasticOut,
-    ));
-  }
-
-  @override
-  void dispose() {
-    _likeAnimationController.dispose();
-    super.dispose();
-  }
-
-  void _onLikePressed() {
-    final isLiked = widget.comment.hasLikeFrom(widget.currentUserId);
-    
-    // Add haptic feedback
-    if (isLiked) {
-      HapticService.unlike();
-    } else {
-      HapticService.like();
-    }
-    
-    widget.onLikePressed();
-    _likeAnimationController.forward().then((_) {
-      _likeAnimationController.reverse();
-    });
-  }
+class _CommentWidgetState extends State<CommentWidget> {
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLiked = widget.comment.hasLikeFrom(widget.currentUserId);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Profile picture
-          GestureDetector(
+          // Profile picture with initials fallback
+          CustomAvatarWidget.small(
+            imageUrl: widget.comment.authorProfileImageUrl,
+            displayName: widget.comment.authorDisplayName,
+            username: widget.comment.authorUsername,
             onTap: widget.onAuthorTapped,
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-              backgroundImage: widget.comment.authorProfileImageUrl != null
-                  ? CachedNetworkImageProvider(widget.comment.authorProfileImageUrl!)
-                  : null,
-              child: widget.comment.authorProfileImageUrl == null
-                  ? Icon(
-                      Icons.person,
-                      size: 18,
-                      color: theme.colorScheme.primary,
-                    )
-                  : null,
-            ),
           ),
 
           const SizedBox(width: 12),
@@ -113,7 +59,7 @@ class _CommentWidgetState extends State<CommentWidget>
                           color: theme.colorScheme.onSurface,
                         ),
                       ),
-                      
+
                       // Verification badge
                       if (widget.comment.isVerified)
                         WidgetSpan(
@@ -126,7 +72,7 @@ class _CommentWidgetState extends State<CommentWidget>
                             ),
                           ),
                         ),
-                      
+
                       // Comment content
                       TextSpan(
                         text: ' ${widget.comment.content}',
@@ -171,9 +117,7 @@ class _CommentWidgetState extends State<CommentWidget>
                     GestureDetector(
                       onTap: () {
                         // TODO: Implement reply functionality
-                        context.showInfoSnackbar(
-                          'Replies coming soon! 💬',
-                        );
+                        context.showInfoSnackbar('Replies coming soon! 💬');
                       },
                       child: Text(
                         'Reply',
@@ -193,24 +137,24 @@ class _CommentWidgetState extends State<CommentWidget>
           const SizedBox(width: 8),
 
           // Like button
-          GestureDetector(
-            onTap: _onLikePressed,
-            child: AnimatedBuilder(
-              animation: _likeAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _likeAnimation.value,
-                  child: Icon(
-                    isLiked ? Icons.favorite : Icons.favorite_border,
-                    size: 16,
-                    color: isLiked
-                        ? Colors.red
-                        : theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                );
-              },
-            ),
-          ),
+          // GestureDetector(
+          //   onTap: _onLikePressed,
+          //   child: AnimatedBuilder(
+          //     animation: _likeAnimation,
+          //     builder: (context, child) {
+          //       return Transform.scale(
+          //         scale: _likeAnimation.value,
+          //         child: Icon(
+          //           isLiked ? Icons.favorite : Icons.favorite_border,
+          //           size: 16,
+          //           color: isLiked
+          //               ? Colors.red
+          //               : theme.colorScheme.onSurface.withOpacity(0.6),
+          //         ),
+          //       );
+          //     },
+          //   ),
+          // ),
         ],
       ),
     );

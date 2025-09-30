@@ -32,11 +32,11 @@ class _LoginPageState extends State<LoginPage> {
   void _onSignIn() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
-            SignInRequested(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-            ),
-          );
+        SignInRequested(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        ),
+      );
     }
   }
 
@@ -51,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
@@ -62,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
               // Clear the error after showing it
               context.read<AuthBloc>().add(const AuthErrorCleared());
             }
-            
+
             if (state.status == AuthStatus.authenticated) {
               context.go('/home');
             }
@@ -72,39 +72,39 @@ class _LoginPageState extends State<LoginPage> {
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  // Logo/App Name
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary,
-                          theme.colorScheme.secondary,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.camera_alt_outlined,
-                      size: 40,
-                      color: theme.colorScheme.onPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-              // App Name
-              Text(
-                'PumpkinSocial',
+                  // // Logo/App Name
+                  // Container(
+                  //   width: 80,
+                  //   height: 80,
+                  //   decoration: BoxDecoration(
+                  //     gradient: LinearGradient(
+                  //       colors: [
+                  //         theme.colorScheme.primary,
+                  //         theme.colorScheme.secondary,
+                  //       ],
+                  //       begin: Alignment.topLeft,
+                  //       end: Alignment.bottomRight,
+                  //     ),
+                  //     borderRadius: BorderRadius.circular(20),
+                  //   ),
+                  //   child: Icon(
+                  //     Icons.camera_alt_outlined,
+                  //     size: 40,
+                  //     color: theme.colorScheme.onPrimary,
+                  //   ),
+                  // ),
+                  // const SizedBox(height: 16),
+
+                  // App Name
+                  Text(
+                    'PumpkinSocial',
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // Subtitle
                   Text(
                     'Share your moments with the world',
@@ -114,7 +114,7 @@ class _LoginPageState extends State<LoginPage> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
-                  
+
                   // Login Form
                   Form(
                     key: _formKey,
@@ -129,14 +129,16 @@ class _LoginPageState extends State<LoginPage> {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your email';
                             }
-                            if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                            if (!RegExp(
+                              r'^[^@]+@[^@]+\.[^@]+',
+                            ).hasMatch(value)) {
                               return 'Please enter a valid email';
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Password Field
                         AuthTextField(
                           controller: _passwordController,
@@ -165,7 +167,7 @@ class _LoginPageState extends State<LoginPage> {
                           },
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Sign In Button
                         BlocBuilder<AuthBloc, AuthState>(
                           builder: (context, state) {
@@ -177,7 +179,7 @@ class _LoginPageState extends State<LoginPage> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Forgot Password
                         TextButton(
                           onPressed: () {
@@ -185,51 +187,57 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           child: Text(
                             'Forgot password?',
-                            style: TextStyle(
-                              color: theme.colorScheme.primary,
-                            ),
+                            style: TextStyle(color: theme.colorScheme.primary),
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Divider
                         Row(
                           children: [
                             Expanded(
                               child: Divider(
-                                color: theme.colorScheme.outline.withOpacity(0.3),
+                                color: theme.colorScheme.outline.withOpacity(
+                                  0.3,
+                                ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               child: Text(
                                 'or',
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.6),
                                 ),
                               ),
                             ),
                             Expanded(
                               child: Divider(
-                                color: theme.colorScheme.outline.withOpacity(0.3),
+                                color: theme.colorScheme.outline.withOpacity(
+                                  0.3,
+                                ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Google Sign In
                         BlocBuilder<AuthBloc, AuthState>(
                           builder: (context, state) {
                             return SocialAuthButton(
                               text: 'Continue with Google',
                               icon: Icons.g_mobiledata,
-                              onPressed: state.isLoading ? null : _onGoogleSignIn,
+                              onPressed:
+                                  state.isLoading ? null : _onGoogleSignIn,
                             );
                           },
                         ),
                         const SizedBox(height: 32),
-                        
+
                         // Sign Up Link
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -237,7 +245,9 @@ class _LoginPageState extends State<LoginPage> {
                             Text(
                               "Don't have an account? ",
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.7,
+                                ),
                               ),
                             ),
                             TextButton(

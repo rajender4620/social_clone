@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../data/models/post_model.dart';
+import '../../../../shared/widgets/custom_avatar_widget.dart';
 
 class PostHeader extends StatelessWidget {
   final PostModel post;
@@ -22,51 +22,12 @@ class PostHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          // Profile Picture
-          GestureDetector(
+          // Profile Picture with initials fallback
+          CustomAvatarWidget.small(
+            imageUrl: post.authorProfileImageUrl,
+            displayName: post.authorDisplayName,
+            username: post.authorUsername,
             onTap: onAuthorTapped,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: ClipOval(
-                child: post.authorProfileImageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: post.authorProfileImageUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: theme.colorScheme.surface,
-                          child: Icon(
-                            Icons.person,
-                            size: 16,
-                            color: theme.colorScheme.onSurface.withOpacity(0.4),
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: theme.colorScheme.surface,
-                          child: Icon(
-                            Icons.person,
-                            size: 16,
-                            color: theme.colorScheme.onSurface.withOpacity(0.4),
-                          ),
-                        ),
-                      )
-                    : Container(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
-                        child: Icon(
-                          Icons.person,
-                          size: 16,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-              ),
-            ),
           ),
 
           const SizedBox(width: 12),
@@ -116,22 +77,23 @@ class PostHeader extends StatelessWidget {
             ),
           ),
 
-          // More options button
-          IconButton(
-            icon: Icon(
-              Icons.more_vert,
-              color: theme.colorScheme.onSurface,
-              size: 20,
-            ),
-            onPressed: onMorePressed ?? () {
-              // TODO: Show post options menu
-            },
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: 24,
-              minHeight: 24,
-            ),
-          ),
+          // More options button - Disabled for now
+          // TODO: Implement post options menu (edit, delete, report, share, etc.)
+          // IconButton(
+          //   icon: Icon(
+          //     Icons.more_vert,
+          //     color: theme.colorScheme.onSurface,
+          //     size: 20,
+          //   ),
+          //   onPressed: onMorePressed ?? () {
+          //     // Show post options menu
+          //   },
+          //   padding: EdgeInsets.zero,
+          //   constraints: const BoxConstraints(
+          //     minWidth: 24,
+          //     minHeight: 24,
+          //   ),
+          // ),
         ],
       ),
     );
