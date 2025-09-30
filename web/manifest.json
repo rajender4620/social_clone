@@ -1,11 +1,11 @@
 {
-    "name": "pumpkin",
-    "short_name": "pumpkin",
+    "name": "Pumpkin",
+    "short_name": "Pumpkin",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFF3E0",
+    "theme_color": "#FF6B35",
+    "description": "Pumpkin - A modern social media app for sharing your moments",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

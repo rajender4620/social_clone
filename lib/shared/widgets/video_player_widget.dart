@@ -1,6 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../services/video_controller_manager.dart';
+import '../services/haptic_service.dart';
 
 class VideoPlayerWidget extends StatefulWidget {
   final String videoUrl;
@@ -26,31 +27,72 @@ class VideoPlayerWidget extends StatefulWidget {
   State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
 }
 
-class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
-  late VideoPlayerController _controller;
+class _VideoPlayerWidgetState extends State<VideoPlayerWidget> 
+    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+  VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _isPlaying = false;
   bool _showControls = false;
   bool _hasError = false;
+  bool _disposed = false;
+
+  final VideoControllerManager _controllerManager = VideoControllerManager();
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeVideo();
   }
 
+  @override
+  void dispose() {
+    _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
+    _releaseController();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_disposed || !mounted) return;
+    
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // Pause video when app goes to background
+        if (_controller != null && _controller!.value.isPlaying) {
+          try {
+            _controller!.pause();
+          } catch (e) {
+            print('⚠️ Error pausing video on app pause: $e');
+          }
+        }
+        break;
+      case AppLifecycleState.resumed:
+        // Check if controller needs reinitializing after app resume
+        _checkAndReinitializeAfterResume();
+        break;
+      case AppLifecycleState.detached:
+        // App is being destroyed
+        break;
+      case AppLifecycleState.hidden:
+        // App is hidden but still running
+        break;
+    }
+  }
+
   Future<void> _initializeVideo() async {
+    if (_disposed) return;
+    
     try {
-      // Check if it's a local file path or network URL
-      if (widget.videoUrl.startsWith('http://') || widget.videoUrl.startsWith('https://')) {
-        _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-      } else {
-        // Local file path
-        _controller = VideoPlayerController.file(File(widget.videoUrl));
-      }
+      _controller = await _controllerManager.getController(widget.videoUrl);
       
-      await _controller.initialize();
-      
+      if (_disposed || _controller == null) return;
+
       if (mounted) {
         setState(() {
           _isInitialized = true;
@@ -58,19 +100,19 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         });
 
         // Set volume based on muted preference
-        _controller.setVolume(widget.muted ? 0.0 : 1.0);
+        _controller!.setVolume(widget.muted ? 0.0 : 1.0);
 
         // Auto play if requested
         if (widget.autoPlay) {
           _playPause();
         }
 
-        // Listen for video completion
-        _controller.addListener(_videoListener);
+        // Listen for video state changes
+        _controller!.addListener(_videoListener);
       }
     } catch (e) {
       print('❌ Video initialization failed: $e');
-      if (mounted) {
+      if (mounted && !_disposed) {
         setState(() {
           _hasError = true;
           _isInitialized = false;
@@ -79,23 +121,114 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
   }
 
+  Future<void> _reinitializeVideo() async {
+    if (_disposed) return;
+    
+    print('🔄 Reinitializing video after app resume');
+    
+    // Reset state
+    setState(() {
+      _isInitialized = false;
+      _hasError = false;
+    });
+    
+    // Clear the current controller to force fresh surface connection
+    if (_controller != null) {
+      _controllerManager.releaseController(widget.videoUrl);
+      _controller = null;
+    }
+    
+    // Force refresh the controller from manager to clear stale surfaces
+    await _controllerManager.refreshController(widget.videoUrl);
+    
+    // Longer delay to ensure surface is completely ready and stale buffers are cleared
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Reinitialize the video
+    await _initializeVideo();
+  }
+
+  Future<void> _checkAndReinitializeAfterResume() async {
+    if (_disposed || !mounted) return;
+    
+    // Add a small delay to avoid immediate conflicts with other lifecycle events
+    await Future.delayed(const Duration(milliseconds: 100));
+    
+    if (_disposed || !mounted) return;
+    
+    bool needsReinitializing = false;
+    
+    if (_controller == null) {
+      needsReinitializing = true;
+    } else {
+      // Check if controller is in a bad state after app resume
+      try {
+        // Try to access controller value - this will throw if disposed
+        final isInitialized = _controller!.value.isInitialized;
+        if (!isInitialized || _hasError) {
+          needsReinitializing = true;
+        }
+      } catch (e) {
+        // Controller is in bad state, needs reinitializing
+        needsReinitializing = true;
+        print('🔄 Controller in bad state after resume: $e');
+      }
+    }
+    
+    if (needsReinitializing) {
+      print('🔄 Reinitializing video controller after app resume');
+      await _reinitializeVideo();
+    }
+  }
+
+  void _releaseController() {
+    if (_controller != null) {
+      _controller!.removeListener(_videoListener);
+      _controllerManager.releaseController(widget.videoUrl);
+      _controller = null;
+    }
+  }
+
   void _videoListener() {
-    if (_controller.value.isPlaying != _isPlaying) {
-      setState(() {
-        _isPlaying = _controller.value.isPlaying;
-      });
+    if (_disposed || !mounted || _controller == null) return;
+    
+    try {
+      // Check if controller is still valid and initialized
+      if (!_controller!.value.isInitialized) return;
+      
+      if (_controller!.value.isPlaying != _isPlaying) {
+        setState(() {
+          _isPlaying = _controller!.value.isPlaying;
+        });
+      }
+    } catch (e) {
+      // Controller was disposed during access - ignore silently
+      print('⚠️ Video listener accessing disposed controller: $e');
     }
   }
 
   void _playPause() {
-    if (_controller.value.isPlaying) {
-      _controller.pause();
-    } else {
-      _controller.play();
+    if (_controller == null || _disposed || !mounted) return;
+    
+    try {
+      if (!_controller!.value.isInitialized) return;
+      
+      if (_controller!.value.isPlaying) {
+        _controller!.pause();
+      } else {
+        // Pause all other videos first
+        _controllerManager.pauseAll();
+        _controller!.play();
+      }
+      HapticService.lightImpact();
+    } catch (e) {
+      print('⚠️ Error in play/pause: $e');
     }
   }
 
   void _toggleControls() {
+    if (_disposed) return;
+    
     setState(() {
       _showControls = !_showControls;
     });
@@ -103,7 +236,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     // Auto-hide controls after 3 seconds
     if (_showControls) {
       Future.delayed(const Duration(seconds: 3), () {
-        if (mounted && _showControls) {
+        if (mounted && _showControls && !_disposed) {
           setState(() {
             _showControls = false;
           });
@@ -127,22 +260,30 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   @override
-  void dispose() {
-    _controller.removeListener(_videoListener);
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
+
+    if (_disposed) {
+      return Container(); // Return empty container if disposed
+    }
 
     if (_hasError) {
       return _buildErrorWidget(theme);
     }
 
-    if (!_isInitialized) {
+    if (!_isInitialized || _controller == null) {
       return _buildLoadingWidget(theme);
+    }
+
+    // Additional safety check for controller state
+    try {
+      if (!_controller!.value.isInitialized) {
+        return _buildLoadingWidget(theme);
+      }
+    } catch (e) {
+      print('⚠️ Controller error in build: $e');
+      return _buildErrorWidget(theme);
     }
 
     return GestureDetector(
@@ -152,8 +293,13 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         children: [
           // Video player
           AspectRatio(
-            aspectRatio: widget.aspectRatio ?? _controller.value.aspectRatio,
-            child: VideoPlayer(_controller),
+            aspectRatio: widget.aspectRatio ?? 
+                (_controller != null && _controller!.value.isInitialized 
+                    ? _controller!.value.aspectRatio 
+                    : 16 / 9), // fallback aspect ratio
+            child: _controller != null 
+                ? VideoPlayer(_controller!) 
+                : Container(color: Colors.black), // fallback if controller is null
           ),
 
           // Play/pause button overlay
@@ -223,7 +369,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _formatDuration(_controller.value.duration),
+                      _formatDuration(_controller!.value.duration),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -307,10 +453,17 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              'Tap to retry',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+            TextButton(
+              onPressed: () async {
+                // Force refresh the controller and reinitialize
+                await _controllerManager.refreshController(widget.videoUrl);
+                await _initializeVideo();
+              },
+              child: Text(
+                'Tap to retry',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
               ),
             ),
           ],
@@ -341,7 +494,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             // Progress bar
             Expanded(
               child: VideoProgressIndicator(
-                _controller,
+                _controller!,
                 allowScrubbing: true,
                 colors: VideoProgressColors(
                   playedColor: theme.colorScheme.primary,
@@ -354,7 +507,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             
             // Duration text
             Text(
-              '${_formatDuration(_controller.value.position)} / ${_formatDuration(_controller.value.duration)}',
+              '${_formatDuration(_controller!.value.position)} / ${_formatDuration(_controller!.value.duration)}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,

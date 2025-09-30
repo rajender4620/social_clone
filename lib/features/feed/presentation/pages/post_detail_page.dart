@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:photo_view/photo_view.dart';
 import 'package:share_plus/share_plus.dart';
 import '../bloc/comments_bloc.dart';
 import '../bloc/comments_event.dart';
@@ -21,6 +20,8 @@ import '../../../../shared/widgets/skeleton_loaders.dart';
 import '../../../../shared/services/snackbar_service.dart';
 import '../../../../shared/widgets/custom_refresh_indicator.dart';
 import '../../../../shared/widgets/animated_list_item.dart';
+import '../../../../shared/widgets/video_player_widget.dart';
+import '../../../../shared/widgets/fullscreen_media_viewer.dart';
 
 class PostDetailPage extends StatefulWidget {
   final PostModel post;
@@ -31,33 +32,19 @@ class PostDetailPage extends StatefulWidget {
   State<PostDetailPage> createState() => _PostDetailPageState();
 }
 
-class _PostDetailPageState extends State<PostDetailPage>
-    with TickerProviderStateMixin {
+class _PostDetailPageState extends State<PostDetailPage> {
   late ScrollController _scrollController;
-  late AnimationController _imageAnimationController;
-  late Animation<double> _imageAnimation;
-  bool _showImageFullscreen = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
-
-    _imageAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _imageAnimation = CurvedAnimation(
-      parent: _imageAnimationController,
-      curve: Curves.easeInOut,
-    );
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
-    _imageAnimationController.dispose();
     super.dispose();
   }
 
@@ -76,16 +63,8 @@ class _PostDetailPageState extends State<PostDetailPage>
     return currentScroll >= (maxScroll * 0.9);
   }
 
-  void _toggleImageFullscreen() {
-    setState(() {
-      _showImageFullscreen = !_showImageFullscreen;
-    });
-
-    if (_showImageFullscreen) {
-      _imageAnimationController.forward();
-    } else {
-      _imageAnimationController.reverse();
-    }
+  void _showFullscreenMedia() {
+    widget.post.showFullscreen(context);
   }
 
   Future<void> _onRefreshComments() async {
@@ -107,16 +86,8 @@ class _PostDetailPageState extends State<PostDetailPage>
           )..add(CommentsLoadRequested(postId: widget.post.id)),
       child: Scaffold(
         backgroundColor: theme.colorScheme.surface,
-        appBar: _showImageFullscreen ? null : _buildAppBar(theme),
-        body: Stack(
-          children: [
-            // Main content
-            if (!_showImageFullscreen) _buildMainContent(theme),
-
-            // Fullscreen image overlay
-            if (_showImageFullscreen) _buildFullscreenImage(theme),
-          ],
-        ),
+        appBar: _buildAppBar(theme),
+        body: _buildMainContent(theme),
       ),
     );
   }
@@ -185,51 +156,59 @@ class _PostDetailPageState extends State<PostDetailPage>
                             onMorePressed: () => _showPostOptions(context),
                           ),
 
-                          // Post image with tap to zoom
+                          // Post media (image or video) with tap to view fullscreen
                           AspectRatio(
                             aspectRatio: 1.0,
                             child: Hero(
-                              tag: 'post_image_${widget.post.id}',
+                              tag: 'post_media_${widget.post.id}',
                               child: GestureDetector(
-                                onTap: _toggleImageFullscreen,
+                                onTap: () => _showFullscreenMedia(),
                                 child: Container(
                                   width: double.infinity,
                                   decoration: BoxDecoration(
                                     color: theme.colorScheme.surface,
                                   ),
-                                  child: CachedNetworkImage(
-                                    imageUrl: widget.post.mediaUrl,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      color: theme.colorScheme.surfaceVariant,
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          color: theme.colorScheme.primary,
-                                          strokeWidth: 2,
-                                        ),
-                                      ),
-                                    ),
-                                    errorWidget: (context, url, error) => Container(
-                                      color: theme.colorScheme.surfaceVariant,
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.broken_image_outlined,
-                                            size: 64,
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Failed to load image',
-                                            style: theme.textTheme.bodyMedium?.copyWith(
-                                              color: theme.colorScheme.onSurfaceVariant,
+                                  child: widget.post.isVideo
+                                      ? VideoPlayerWidget(
+                                          videoUrl: widget.post.videoUrl,
+                                          autoPlay: false,
+                                          muted: true,
+                                          showControls: true,
+                                          onTap: () => _showFullscreenMedia(),
+                                        )
+                                      : CachedNetworkImage(
+                                          imageUrl: widget.post.mediaUrl,
+                                          fit: BoxFit.cover,
+                                          placeholder: (context, url) => Container(
+                                            color: theme.colorScheme.surfaceVariant,
+                                            child: Center(
+                                              child: CircularProgressIndicator(
+                                                color: theme.colorScheme.primary,
+                                                strokeWidth: 2,
+                                              ),
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
+                                          errorWidget: (context, url, error) => Container(
+                                            color: theme.colorScheme.surfaceVariant,
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.broken_image_outlined,
+                                                  size: 64,
+                                                  color: theme.colorScheme.onSurfaceVariant,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  'Failed to load image',
+                                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                                    color: theme.colorScheme.onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
@@ -353,112 +332,6 @@ class _PostDetailPageState extends State<PostDetailPage>
     );
   }
 
-  Widget _buildFullscreenImage(ThemeData theme) {
-    return AnimatedBuilder(
-      animation: _imageAnimation,
-      builder: (context, child) {
-        return Container(
-          color: Colors.black.withOpacity(_imageAnimation.value * 0.9),
-          child: Stack(
-            children: [
-              // Zoomable image
-              Center(
-                child: PhotoView(
-                  imageProvider: CachedNetworkImageProvider(
-                    widget.post.mediaUrl,
-                  ),
-                  backgroundDecoration: const BoxDecoration(
-                    color: Colors.transparent,
-                  ),
-                  minScale: PhotoViewComputedScale.contained,
-                  maxScale: PhotoViewComputedScale.covered * 3.0,
-                  heroAttributes: PhotoViewHeroAttributes(
-                    tag: 'post_image_${widget.post.id}',
-                  ),
-                  loadingBuilder:
-                      (context, event) => Center(
-                        child: CircularProgressIndicator(
-                          value:
-                              event == null
-                                  ? 0
-                                  : event.cumulativeBytesLoaded /
-                                      (event.expectedTotalBytes ?? 1),
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      ),
-                  errorBuilder:
-                      (context, error, stackTrace) => const Center(
-                        child: Icon(
-                          Icons.broken_image_outlined,
-                          size: 64,
-                          color: Colors.white,
-                        ),
-                      ),
-                ),
-              ),
-
-              // Close button
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 16,
-                left: 16,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: _toggleImageFullscreen,
-                  ),
-                ),
-              ),
-
-              // Image info overlay
-              Positioned(
-                bottom: MediaQuery.of(context).padding.bottom + 16,
-                left: 16,
-                right: 16,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '@${widget.post.authorUsername}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
-                      if (widget.post.caption.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.post.caption,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildCaptionOnly(ThemeData theme) {
     return Column(

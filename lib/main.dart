@@ -14,6 +14,7 @@ import 'features/follow/data/repositories/follow_repository.dart';
 import 'shared/services/image_picker_service.dart';
 import 'core/router/app_router.dart';
 import 'core/themes/app_theme.dart';
+import 'shared/services/video_controller_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,8 +24,51 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    VideoControllerManager().disposeAll();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // Pause all videos when app goes to background
+        VideoControllerManager().pauseAll();
+        print('🔄 App paused - videos paused');
+        break;
+      case AppLifecycleState.resumed:
+        // App is back - let individual video players handle reinitializing themselves
+        // This avoids race conditions from bulk controller disposal
+        print('🔄 App resumed - video players will reinitialize as needed');
+        break;
+      case AppLifecycleState.detached:
+        // App is being destroyed - dispose all controllers
+        VideoControllerManager().disposeAll();
+        print('🔄 App detached - all video controllers disposed');
+        break;
+      case AppLifecycleState.hidden:
+        // App is hidden but still running
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

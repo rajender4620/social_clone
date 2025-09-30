@@ -8,6 +8,7 @@ import '../widgets/auth_text_field.dart';
 import '../widgets/auth_button.dart';
 import '../widgets/social_auth_button.dart';
 import '../../../../shared/services/snackbar_service.dart';
+import '../../../../shared/widgets/pumpkin_icon.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -92,28 +93,9 @@ class _SignUpPageState extends State<SignUpPage> {
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  // // Logo/App Name
-                  // Container(
-                  //   width: 80,
-                  //   height: 80,
-                  //   decoration: BoxDecoration(
-                  //     gradient: LinearGradient(
-                  //       colors: [
-                  //         theme.colorScheme.primary,
-                  //         theme.colorScheme.secondary,
-                  //       ],
-                  //       begin: Alignment.topLeft,
-                  //       end: Alignment.bottomRight,
-                  //     ),
-                  //     borderRadius: BorderRadius.circular(20),
-                  //   ),
-                  //   child: Icon(
-                  //     Icons.camera_alt_outlined,
-                  //     size: 40,
-                  //     color: theme.colorScheme.onPrimary,
-                  //   ),
-                  // ),
-                  // const SizedBox(height: 16),
+                  // App Logo
+                  const PumpkinIcon.large(),
+                  const SizedBox(height: 16),
 
                   // App Name
                   Text(

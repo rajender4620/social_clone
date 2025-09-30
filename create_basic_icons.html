@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Basic Pumpkin Icons</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #FFF3E0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        button { background: #FF6B35; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 10px; }
+        button:hover { background: #E55722; }
+        canvas { border: 2px solid #FF6B35; margin: 10px; border-radius: 10px; }
+        .download-section { margin: 20px 0; padding: 20px; background: #F5F5F5; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎃 Create Pumpkin App Icons</h1>
+        <p>Click the button below to generate the required PNG icons for your Flutter app.</p>
+        
+        <button onclick="createIcons()">🎨 Generate Icons</button>
+        
+        <div class="download-section" id="downloadSection" style="display: none;">
+            <h3>📥 Download Your Icons:</h3>
+            <p>Right-click each image and select "Save image as..."</p>
+            <div id="iconsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        function drawPumpkin(ctx, size) {
+            const scale = size / 100;
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            // Clear canvas with light orange background
+            ctx.fillStyle = '#FFF3E0';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Main pumpkin body
+            ctx.fillStyle = '#FF6B35';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY + 2 * scale, 35 * scale, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Pumpkin ridges
+            ctx.strokeStyle = '#E55722';
+            ctx.lineWidth = 2 * scale;
+            
+            // Center ridge
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 28 * scale);
+            ctx.lineTo(centerX, centerY + 32 * scale);
+            ctx.stroke();
+            
+            // Left ridge
+            ctx.beginPath();
+            ctx.moveTo(centerX - 15 * scale, centerY - 20 * scale);
+            ctx.lineTo(centerX - 15 * scale, centerY + 25 * scale);
+            ctx.stroke();
+            
+            // Right ridge
+            ctx.beginPath();
+            ctx.moveTo(centerX + 15 * scale, centerY - 20 * scale);
+            ctx.lineTo(centerX + 15 * scale, centerY + 25 * scale);
+            ctx.stroke();
+            
+            // Stem
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(centerX - 3 * scale, centerY - 40 * scale, 6 * scale, 15 * scale);
+            
+            // Highlight
+            ctx.fillStyle = 'rgba(255, 140, 66, 0.5)';
+            ctx.beginPath();
+            ctx.arc(centerX - 10 * scale, centerY - 5 * scale, 12 * scale, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        
+        function drawPumpkinForeground(ctx, size) {
+            const scale = size / 100;
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            // Clear canvas with transparent background
+            ctx.clearRect(0, 0, size, size);
+            
+            // Main pumpkin body (no background for adaptive icon)
+            ctx.fillStyle = '#FF6B35';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY + 2 * scale, 30 * scale, 0, 2 * Math.PI);  // Slightly smaller for foreground
+            ctx.fill();
+            
+            // Pumpkin ridges
+            ctx.strokeStyle = '#E55722';
+            ctx.lineWidth = 2 * scale;
+            
+            // Center ridge
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 23 * scale);
+            ctx.lineTo(centerX, centerY + 27 * scale);
+            ctx.stroke();
+            
+            // Left ridge
+            ctx.beginPath();
+            ctx.moveTo(centerX - 12 * scale, centerY - 18 * scale);
+            ctx.lineTo(centerX - 12 * scale, centerY + 22 * scale);
+            ctx.stroke();
+            
+            // Right ridge
+            ctx.beginPath();
+            ctx.moveTo(centerX + 12 * scale, centerY - 18 * scale);
+            ctx.lineTo(centerX + 12 * scale, centerY + 22 * scale);
+            ctx.stroke();
+            
+            // Stem
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(centerX - 3 * scale, centerY - 35 * scale, 6 * scale, 12 * scale);
+            
+            // Highlight
+            ctx.fillStyle = 'rgba(255, 140, 66, 0.4)';
+            ctx.beginPath();
+            ctx.arc(centerX - 8 * scale, centerY - 3 * scale, 10 * scale, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        
+        function createIcons() {
+            const container = document.getElementById('iconsContainer');
+            const section = document.getElementById('downloadSection');
+            
+            container.innerHTML = '';
+            section.style.display = 'block';
+            
+            // Create main app icon (1024x1024)
+            const mainCanvas = document.createElement('canvas');
+            mainCanvas.width = 1024;
+            mainCanvas.height = 1024;
+            mainCanvas.style.width = '150px';
+            mainCanvas.style.height = '150px';
+            const mainCtx = mainCanvas.getContext('2d');
+            drawPumpkin(mainCtx, 1024);
+            
+            const mainLabel = document.createElement('p');
+            mainLabel.innerHTML = '<strong>app_icon.png</strong> (Main Icon - 1024x1024)<br><small>Right-click and save as: app_icon.png</small>';
+            
+            // Create foreground icon (1024x1024) 
+            const fgCanvas = document.createElement('canvas');
+            fgCanvas.width = 1024;
+            fgCanvas.height = 1024;
+            fgCanvas.style.width = '150px';
+            fgCanvas.style.height = '150px';
+            const fgCtx = fgCanvas.getContext('2d');
+            drawPumpkinForeground(fgCtx, 1024);
+            
+            const fgLabel = document.createElement('p');
+            fgLabel.innerHTML = '<strong>app_icon_foreground.png</strong> (Adaptive Foreground - 1024x1024)<br><small>Right-click and save as: app_icon_foreground.png</small>';
+            
+            // Add to container
+            container.appendChild(mainLabel);
+            container.appendChild(mainCanvas);
+            container.appendChild(document.createElement('hr'));
+            container.appendChild(fgLabel);
+            container.appendChild(fgCanvas);
+            
+            // Auto-download functionality
+            setTimeout(() => {
+                // Download main icon
+                mainCanvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'app_icon.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                });
+                
+                // Download foreground icon
+                setTimeout(() => {
+                    fgCanvas.toBlob(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'app_icon_foreground.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                }, 500);
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

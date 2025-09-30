@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pumpkin App Icon Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        .preview {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .icon-item {
+            text-align: center;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .icon-item canvas {
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #E55722;
+        }
+        .download-all {
+            text-align: center;
+            margin: 20px 0;
+        }
+        h1 {
+            color: #E55722;
+            text-align: center;
+        }
+        .instructions {
+            background: #fff3e0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #FF6B35;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎃 Pumpkin App Icon Generator</h1>
+        
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Click "Generate All Icons" to create all required sizes</li>
+                <li>Right-click on each icon and "Save image as..." to download</li>
+                <li>Place the icons in their respective folders as shown below</li>
+            </ol>
+        </div>
+
+        <div class="download-all">
+            <button onclick="generateAllIcons()">🎨 Generate All Icons</button>
+            <button onclick="downloadZip()">📦 Download All as ZIP</button>
+        </div>
+
+        <div id="iconGrid" class="icon-grid"></div>
+    </div>
+
+    <script>
+        const iconSVG = `<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <radialGradient id="pumpkinGradient" cx="0.3" cy="0.3" r="0.8">
+                    <stop offset="0%" stop-color="#FF8C42"/>
+                    <stop offset="40%" stop-color="#FF6B35"/>
+                    <stop offset="100%" stop-color="#E55722"/>
+                </radialGradient>
+                <linearGradient id="stemGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#4CAF50"/>
+                    <stop offset="100%" stop-color="#2E7D32"/>
+                </linearGradient>
+                <radialGradient id="highlight" cx="0.25" cy="0.25" r="0.6">
+                    <stop offset="0%" stop-color="#FFB74D" stop-opacity="0.8"/>
+                    <stop offset="100%" stop-color="#FFB74D" stop-opacity="0"/>
+                </radialGradient>
+            </defs>
+            <circle cx="256" cy="256" r="240" fill="#FFF3E0"/>
+            <g transform="translate(256,256)">
+                <path d="M-80,-60 Q-80,-140 -40,-140 Q-20,-150 0,-140 Q20,-150 40,-140 Q80,-140 80,-60 Q80,60 60,100 Q40,120 0,120 Q-40,120 -60,100 Q-80,60 -80,-60 Z" fill="url(#pumpkinGradient)"/>
+                <path d="M-60,-50 Q-60,-120 -30,-125 Q-30,-130 -20,-125 Q-20,100 -30,110" fill="none" stroke="#E55722" stroke-width="2" opacity="0.6"/>
+                <path d="M-20,-50 Q-20,-125 0,-135 Q0,105 0,115" fill="none" stroke="#E55722" stroke-width="2" opacity="0.6"/>
+                <path d="M20,-50 Q20,-125 0,-135 Q0,105 0,115" fill="none" stroke="#E55722" stroke-width="2" opacity="0.6"/>
+                <path d="M60,-50 Q60,-120 30,-125 Q30,-130 20,-125 Q20,100 30,110" fill="none" stroke="#E55722" stroke-width="2" opacity="0.6"/>
+                <rect x="-8" y="-160" width="16" height="25" rx="8" fill="url(#stemGradient)"/>
+                <ellipse cx="12" cy="-152" rx="15" ry="8" fill="url(#stemGradient)" transform="rotate(25)"/>
+                <ellipse cx="-30" cy="-40" rx="40" ry="55" fill="url(#highlight)"/>
+                <circle cx="90" cy="-80" r="8" fill="#FF8C42" opacity="0.7"/>
+                <circle cx="100" cy="-30" r="6" fill="#FF6B35" opacity="0.6"/>
+                <circle cx="85" cy="20" r="5" fill="#E55722" opacity="0.5"/>
+                <path d="M82,-72 Q88,-50 94,-32" stroke="#FF8C42" stroke-width="2" fill="none" opacity="0.4"/>
+                <path d="M96,-24 Q90,0 80,16" stroke="#FF6B35" stroke-width="2" fill="none" opacity="0.3"/>
+            </g>
+            <ellipse cx="256" cy="460" rx="120" ry="25" fill="#E55722" opacity="0.2"/>
+        </svg>`;
+
+        const iconSizes = [
+            // Android
+            { size: 48, name: 'ic_launcher.png', folder: 'android/app/src/main/res/mipmap-mdpi/' },
+            { size: 72, name: 'ic_launcher.png', folder: 'android/app/src/main/res/mipmap-hdpi/' },
+            { size: 96, name: 'ic_launcher.png', folder: 'android/app/src/main/res/mipmap-xhdpi/' },
+            { size: 144, name: 'ic_launcher.png', folder: 'android/app/src/main/res/mipmap-xxhdpi/' },
+            { size: 192, name: 'ic_launcher.png', folder: 'android/app/src/main/res/mipmap-xxxhdpi/' },
+
+            // iOS  
+            { size: 20, name: 'Icon-App-20x20@1x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 40, name: 'Icon-App-20x20@2x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 60, name: 'Icon-App-20x20@3x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 29, name: 'Icon-App-29x29@1x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 58, name: 'Icon-App-29x29@2x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 87, name: 'Icon-App-29x29@3x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 40, name: 'Icon-App-40x40@1x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 80, name: 'Icon-App-40x40@2x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 120, name: 'Icon-App-40x40@3x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 120, name: 'Icon-App-60x60@2x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 180, name: 'Icon-App-60x60@3x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 76, name: 'Icon-App-76x76@1x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 152, name: 'Icon-App-76x76@2x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 167, name: 'Icon-App-83.5x83.5@2x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+            { size: 1024, name: 'Icon-App-1024x1024@1x.png', folder: 'ios/Runner/Assets.xcassets/AppIcon.appiconset/' },
+
+            // Web
+            { size: 32, name: 'favicon.png', folder: 'web/' },
+            { size: 192, name: 'Icon-192.png', folder: 'web/icons/' },
+            { size: 512, name: 'Icon-512.png', folder: 'web/icons/' },
+            { size: 192, name: 'Icon-maskable-192.png', folder: 'web/icons/', maskable: true },
+            { size: 512, name: 'Icon-maskable-512.png', folder: 'web/icons/', maskable: true }
+        ];
+
+        function svgToCanvas(svgString, size, maskable = false) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = size;
+                canvas.height = size;
+
+                if (maskable) {
+                    // Add orange background for maskable icons
+                    ctx.fillStyle = '#FF8C42';
+                    ctx.fillRect(0, 0, size, size);
+                }
+
+                const img = new Image();
+                img.onload = () => {
+                    if (maskable) {
+                        // Scale down content for maskable icons (80% of size)
+                        const padding = size * 0.1;
+                        ctx.drawImage(img, padding, padding, size - 2*padding, size - 2*padding);
+                    } else {
+                        ctx.drawImage(img, 0, 0, size, size);
+                    }
+                    resolve(canvas);
+                };
+                
+                const blob = new Blob([svgString], {type: 'image/svg+xml'});
+                const url = URL.createObjectURL(blob);
+                img.src = url;
+            });
+        }
+
+        async function generateAllIcons() {
+            const grid = document.getElementById('iconGrid');
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px;">Generating icons...</div>';
+            
+            // Remove duplicates based on size and maskable
+            const uniqueSizes = iconSizes.filter((item, index) => {
+                const key = `${item.size}-${item.maskable || false}`;
+                return iconSizes.findIndex(i => `${i.size}-${i.maskable || false}` === key) === index;
+            });
+
+            grid.innerHTML = '';
+            
+            for (const iconSpec of uniqueSizes) {
+                const canvas = await svgToCanvas(iconSVG, iconSpec.size, iconSpec.maskable);
+                
+                const div = document.createElement('div');
+                div.className = 'icon-item';
+                
+                const displaySize = Math.min(iconSpec.size, 80);
+                canvas.style.width = displaySize + 'px';
+                canvas.style.height = displaySize + 'px';
+                
+                div.innerHTML = `
+                    <div>${iconSpec.size}x${iconSpec.size}${iconSpec.maskable ? ' (maskable)' : ''}</div>
+                    <div style="margin: 8px 0;">${canvas.outerHTML}</div>
+                    <button onclick="downloadIcon(${iconSpec.size}, ${iconSpec.maskable || false})" style="font-size: 12px; padding: 6px 12px;">
+                        📥 Download
+                    </button>
+                `;
+                
+                grid.appendChild(div);
+            }
+        }
+
+        async function downloadIcon(size, maskable = false) {
+            const canvas = await svgToCanvas(iconSVG, size, maskable);
+            const link = document.createElement('a');
+            link.download = `pumpkin-icon-${size}x${size}${maskable ? '-maskable' : ''}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        async function downloadZip() {
+            alert('For ZIP download, please use a tool like 7-Zip to compress all downloaded icons, or generate them using the Python script.');
+        }
+
+        // Generate icons on page load
+        window.onload = () => {
+            generateAllIcons();
+        };
+    </script>
+</body>
+</html>

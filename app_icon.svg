@@ -1,0 +1,66 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Main pumpkin gradient -->
+    <radialGradient id="pumpkinGradient" cx="0.3" cy="0.3" r="0.8">
+      <stop offset="0%" stop-color="#FF8C42"/>
+      <stop offset="40%" stop-color="#FF6B35"/>
+      <stop offset="100%" stop-color="#E55722"/>
+    </radialGradient>
+    
+    <!-- Stem gradient -->
+    <linearGradient id="stemGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4CAF50"/>
+      <stop offset="100%" stop-color="#2E7D32"/>
+    </linearGradient>
+    
+    <!-- Highlight gradient -->
+    <radialGradient id="highlight" cx="0.25" cy="0.25" r="0.6">
+      <stop offset="0%" stop-color="#FFB74D" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FFB74D" stop-opacity="0"/>
+    </radialGradient>
+    
+    <!-- Shadow -->
+    <ellipse id="shadowShape" cx="256" cy="460" rx="120" ry="25" fill="#E55722" opacity="0.2"/>
+  </defs>
+  
+  <!-- Background circle for app icon -->
+  <circle cx="256" cy="256" r="240" fill="#FFF3E0"/>
+  
+  <!-- Main pumpkin body -->
+  <g transform="translate(256,256)">
+    <!-- Main pumpkin segments -->
+    <path d="M-80,-60 Q-80,-140 -40,-140 Q-20,-150 0,-140 Q20,-150 40,-140 Q80,-140 80,-60 Q80,60 60,100 Q40,120 0,120 Q-40,120 -60,100 Q-80,60 -80,-60 Z" 
+          fill="url(#pumpkinGradient)"/>
+    
+    <!-- Pumpkin ridges for dimension -->
+    <path d="M-60,-50 Q-60,-120 -30,-125 Q-30,-130 -20,-125 Q-20,100 -30,110" 
+          fill="none" stroke="#E55722" stroke-width="2" opacity="0.6"/>
+    <path d="M-20,-50 Q-20,-125 0,-135 Q0,105 0,115" 
+          fill="none" stroke="#E55722" stroke-width="2" opacity="0.6"/>
+    <path d="M20,-50 Q20,-125 0,-135 Q0,105 0,115" 
+          fill="none" stroke="#E55722" stroke-width="2" opacity="0.6"/>
+    <path d="M60,-50 Q60,-120 30,-125 Q30,-130 20,-125 Q20,100 30,110" 
+          fill="none" stroke="#E55722" stroke-width="2" opacity="0.6"/>
+    
+    <!-- Stem -->
+    <rect x="-8" y="-160" width="16" height="25" rx="8" fill="url(#stemGradient)"/>
+    
+    <!-- Leaf -->
+    <ellipse cx="12" cy="-152" rx="15" ry="8" fill="url(#stemGradient)" transform="rotate(25)"/>
+    
+    <!-- Highlight for 3D effect -->
+    <ellipse cx="-30" cy="-40" rx="40" ry="55" fill="url(#highlight)"/>
+    
+    <!-- Social connection dots (subtle) -->
+    <circle cx="90" cy="-80" r="8" fill="#FF8C42" opacity="0.7"/>
+    <circle cx="100" cy="-30" r="6" fill="#FF6B35" opacity="0.6"/>
+    <circle cx="85" cy="20" r="5" fill="#E55722" opacity="0.5"/>
+    
+    <!-- Connection lines -->
+    <path d="M82,-72 Q88,-50 94,-32" stroke="#FF8C42" stroke-width="2" fill="none" opacity="0.4"/>
+    <path d="M96,-24 Q90,0 80,16" stroke="#FF6B35" stroke-width="2" fill="none" opacity="0.3"/>
+  </g>
+  
+  <!-- Subtle shadow -->
+  <use href="#shadowShape"/>
+</svg>

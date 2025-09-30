@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎃 Pumpkin PNG Icon Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #FFE0B2 0%, #FF8A65 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #E65100;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .canvas-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        canvas {
+            border: 2px solid #FF6B35;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .canvas-info {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        button {
+            background: linear-gradient(45deg, #FF6B35, #FF8C42);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: block;
+            margin: 30px auto;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+        .instructions {
+            background: #F3E5F5;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #FF6B35;
+        }
+        .download-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .download-link {
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+        .download-link:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎃 Pumpkin PNG Icon Generator</h1>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Click "Generate PNG Icons" to create all required icon sizes</li>
+                <li>Right-click each generated icon and "Save image as..."</li>
+                <li>Save the main icon as <strong>app_icon.png</strong> (1024x1024)</li>
+                <li>Save the foreground icon as <strong>app_icon_foreground.png</strong> (1024x1024)</li>
+                <li>Place both files in your <strong>assets/icon/</strong> folder</li>
+                <li>Run <code>flutter pub get</code> and <code>dart run flutter_launcher_icons</code></li>
+            </ol>
+        </div>
+
+        <button onclick="generateIcons()">🎨 Generate PNG Icons</button>
+        
+        <div class="canvas-container" id="canvasContainer"></div>
+        <div class="download-links" id="downloadLinks"></div>
+    </div>
+
+    <script>
+        function drawPumpkinIcon(canvas, size, foregroundOnly = false) {
+            const ctx = canvas.getContext('2d');
+            const scale = size / 120; // Base design is 120x120
+            const center = { x: size / 2, y: size / 2 };
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            if (!foregroundOnly) {
+                // Background circle for regular icon
+                const bgGradient = ctx.createRadialGradient(
+                    center.x, center.y, 0,
+                    center.x, center.y, size / 2
+                );
+                bgGradient.addColorStop(0, '#FFF3E0');
+                bgGradient.addColorStop(1, '#FFE0B2');
+                ctx.fillStyle = bgGradient;
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, size / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Main pumpkin body
+            const pumpkinGradient = ctx.createRadialGradient(
+                center.x - 15 * scale, center.y - 10 * scale, 0,
+                center.x, center.y + 5 * scale, 50 * scale
+            );
+            pumpkinGradient.addColorStop(0, '#FF8C42');
+            pumpkinGradient.addColorStop(0.4, '#FF6B35');
+            pumpkinGradient.addColorStop(1, '#E55722');
+            
+            ctx.fillStyle = pumpkinGradient;
+            ctx.beginPath();
+            
+            // Create pumpkin shape (rounded rectangle with curves)
+            const pumpkinWidth = 80 * scale;
+            const pumpkinHeight = 70 * scale;
+            const pumpkinX = center.x - pumpkinWidth / 2;
+            const pumpkinY = center.y - pumpkinHeight / 2 + 5 * scale;
+            
+            ctx.roundRect(pumpkinX, pumpkinY, pumpkinWidth, pumpkinHeight, 25 * scale);
+            ctx.fill();
+            
+            // Draw pumpkin ridges
+            ctx.strokeStyle = '#E55722';
+            ctx.lineWidth = 1.5 * scale;
+            
+            // Left ridge
+            ctx.beginPath();
+            ctx.moveTo(center.x - 20 * scale, center.y - 15 * scale);
+            ctx.quadraticCurveTo(center.x - 20 * scale, center.y - 25 * scale, center.x - 10 * scale, center.y - 25 * scale);
+            ctx.lineTo(center.x - 10 * scale, center.y + 25 * scale);
+            ctx.stroke();
+            
+            // Center ridge
+            ctx.beginPath();
+            ctx.moveTo(center.x, center.y - 15 * scale);
+            ctx.quadraticCurveTo(center.x, center.y - 30 * scale, center.x, center.y - 30 * scale);
+            ctx.lineTo(center.x, center.y + 25 * scale);
+            ctx.stroke();
+            
+            // Right ridge
+            ctx.beginPath();
+            ctx.moveTo(center.x + 10 * scale, center.y - 15 * scale);
+            ctx.quadraticCurveTo(center.x + 10 * scale, center.y - 25 * scale, center.x + 20 * scale, center.y - 25 * scale);
+            ctx.lineTo(center.x + 20 * scale, center.y + 25 * scale);
+            ctx.stroke();
+            
+            // Draw stem
+            const stemGradient = ctx.createLinearGradient(0, center.y - 40 * scale, 0, center.y - 25 * scale);
+            stemGradient.addColorStop(0, '#4CAF50');
+            stemGradient.addColorStop(1, '#2E7D32');
+            
+            ctx.fillStyle = stemGradient;
+            ctx.fillRect(center.x - 4 * scale, center.y - 40 * scale, 8 * scale, 12 * scale);
+            
+            // Draw leaf
+            ctx.fillStyle = '#2E7D32';
+            ctx.beginPath();
+            ctx.ellipse(center.x + 6 * scale, center.y - 32 * scale, 4 * scale, 2 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add highlight for 3D effect
+            const highlightGradient = ctx.createRadialGradient(
+                center.x - 15 * scale, center.y - 5 * scale, 0,
+                center.x - 15 * scale, center.y - 5 * scale, 30 * scale
+            );
+            highlightGradient.addColorStop(0, 'rgba(255, 183, 77, 0.6)');
+            highlightGradient.addColorStop(1, 'rgba(255, 183, 77, 0)');
+            
+            ctx.fillStyle = highlightGradient;
+            ctx.beginPath();
+            ctx.ellipse(center.x - 15 * scale, center.y - 5 * scale, 15 * scale, 17.5 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add small social connection dots
+            ctx.fillStyle = 'rgba(255, 140, 66, 0.7)';
+            ctx.beginPath();
+            ctx.arc(center.x + 32 * scale, center.y - 20 * scale, 2 * scale, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255, 107, 53, 0.6)';
+            ctx.beginPath();
+            ctx.arc(center.x + 35 * scale, center.y - 5 * scale, 1.5 * scale, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(229, 87, 34, 0.5)';
+            ctx.beginPath();
+            ctx.arc(center.x + 30 * scale, center.y + 8 * scale, 1 * scale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function generateIcons() {
+            const container = document.getElementById('canvasContainer');
+            const downloadLinks = document.getElementById('downloadLinks');
+            container.innerHTML = '';
+            downloadLinks.innerHTML = '';
+            
+            const sizes = [
+                { size: 1024, name: 'app_icon.png', title: 'Main Icon (1024x1024)' },
+                { size: 1024, name: 'app_icon_foreground.png', title: 'Foreground Icon (1024x1024)', foreground: true },
+                { size: 512, name: 'Icon-512.png', title: 'Web Icon (512x512)' },
+                { size: 192, name: 'Icon-192.png', title: 'Web Icon (192x192)' },
+                { size: 48, name: 'favicon.png', title: 'Favicon (48x48)' }
+            ];
+            
+            sizes.forEach(iconSpec => {
+                const canvasWrapper = document.createElement('div');
+                const canvas = document.createElement('canvas');
+                const info = document.createElement('div');
+                
+                canvas.width = iconSpec.size;
+                canvas.height = iconSpec.size;
+                canvas.style.width = '100px';
+                canvas.style.height = '100px';
+                
+                info.className = 'canvas-info';
+                info.textContent = iconSpec.title;
+                
+                drawPumpkinIcon(canvas, iconSpec.size, iconSpec.foreground);
+                
+                canvasWrapper.appendChild(canvas);
+                canvasWrapper.appendChild(info);
+                container.appendChild(canvasWrapper);
+                
+                // Create download link
+                canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = iconSpec.name;
+                    link.className = 'download-link';
+                    link.textContent = `💾 ${iconSpec.name}`;
+                    downloadLinks.appendChild(link);
+                });
+            });
+        }
+        
+        // Polyfill for roundRect if not available
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radii) {
+                this.beginPath();
+                this.moveTo(x + radii, y);
+                this.lineTo(x + width - radii, y);
+                this.quadraticCurveTo(x + width, y, x + width, y + radii);
+                this.lineTo(x + width, y + height - radii);
+                this.quadraticCurveTo(x + width, y + height, x + width - radii, y + height);
+                this.lineTo(x + radii, y + height);
+                this.quadraticCurveTo(x, y + height, x, y + height - radii);
+                this.lineTo(x, y + radii);
+                this.quadraticCurveTo(x, y, x + radii, y);
+            };
+        }
+    </script>
+</body>
+</html>

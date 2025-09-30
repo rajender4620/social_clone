@@ -30,11 +30,15 @@ class PostWidget extends StatefulWidget {
   State<PostWidget> createState() => _PostWidgetState();
 }
 
-class _PostWidgetState extends State<PostWidget> {
+class _PostWidgetState extends State<PostWidget> with AutomaticKeepAliveClientMixin {
   bool _isZooming = false;
+  
+  @override
+  bool get wantKeepAlive => widget.post.isVideo; // Keep video posts alive
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final theme = Theme.of(context);
     final isLiked = widget.currentUserId != null && widget.post.hasLikeFrom(widget.currentUserId!);
 
@@ -137,8 +141,7 @@ class _PostWidgetState extends State<PostWidget> {
       muted: true, // Start muted for better UX
       showControls: true, // Show controls for better UX
       onTap: () {
-        HapticService.lightImpact();
-        // Video player handles play/pause internally
+        // Haptic feedback is handled in the OptimizedVideoPlayer
       },
       onFullscreen: () {
         HapticService.navigation();

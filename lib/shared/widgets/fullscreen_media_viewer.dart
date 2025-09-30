@@ -546,8 +546,7 @@ class _FullscreenMediaViewerState extends State<FullscreenMediaViewer>
         muted: false, // Allow sound in fullscreen
         showControls: true,
         onTap: () {
-          // Video player handles play/pause internally
-          HapticService.lightImpact();
+          // Video player handles play/pause internally (haptic feedback included)
         },
       ),
     );

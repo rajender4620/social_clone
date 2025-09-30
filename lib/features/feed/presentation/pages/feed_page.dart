@@ -14,6 +14,7 @@ import '../../../../shared/services/haptic_service.dart';
 import '../../../../shared/widgets/custom_refresh_indicator.dart';
 import '../../../../shared/widgets/animated_list_item.dart';
 import '../../../../shared/widgets/fullscreen_media_viewer.dart';
+import '../../../../shared/widgets/pumpkin_icon.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -68,8 +69,10 @@ class _FeedPageState extends State<FeedPage> {
       appBar: AppBar(
         title: Row(
           children: [
+            const PumpkinIcon.small(),
+            const SizedBox(width: 8),
             Text(
-              'PumpkinSocial',
+              'Pumpkin',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface,
@@ -199,29 +202,10 @@ class _FeedPageState extends State<FeedPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary.withOpacity(0.1),
-                      theme.colorScheme.secondary.withOpacity(0.1),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(60),
-                ),
-                child: Icon(
-                  Icons.photo_camera_outlined,
-                  size: 60,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
+              const PumpkinIcon.large(showShadow: true),
               const SizedBox(height: 24),
               Text(
-                'Welcome to PumpkinSocial!',
+                'Welcome to Pumpkin!',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onBackground,
