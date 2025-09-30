@@ -198,7 +198,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                                     color: theme.colorScheme.surface,
                                   ),
                                   child: CachedNetworkImage(
-                                    imageUrl: widget.post.imageUrl,
+                                    imageUrl: widget.post.mediaUrl,
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) => Container(
                                       color: theme.colorScheme.surfaceVariant,
@@ -365,7 +365,7 @@ class _PostDetailPageState extends State<PostDetailPage>
               Center(
                 child: PhotoView(
                   imageProvider: CachedNetworkImageProvider(
-                    widget.post.imageUrl,
+                    widget.post.mediaUrl,
                   ),
                   backgroundDecoration: const BoxDecoration(
                     color: Colors.transparent,

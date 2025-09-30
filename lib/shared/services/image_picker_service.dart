@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../features/feed/data/models/post_model.dart';
+
+enum MediaSource { camera, gallery }
 
 class ImagePickerService {
   final ImagePicker _picker = ImagePicker();
@@ -21,6 +24,36 @@ class ImagePickerService {
       return null;
     } catch (e) {
       throw Exception('Failed to pick image: $e');
+    }
+  }
+
+  /// Pick video from camera or gallery
+  Future<File?> pickVideo(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickVideo(
+        source: source,
+        maxDuration: const Duration(seconds: 60), // Max 1 minute video
+      );
+
+      if (pickedFile != null) {
+        return File(pickedFile.path);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to pick video: $e');
+    }
+  }
+
+  /// Pick media (image or video) from camera or gallery
+  Future<File?> pickMedia({
+    required MediaType mediaType,
+    required ImageSource source,
+  }) async {
+    switch (mediaType) {
+      case MediaType.image:
+        return await pickImage(source);
+      case MediaType.video:
+        return await pickVideo(source);
     }
   }
 

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -5,14 +6,10 @@ import '../widgets/upload_progress_widget.dart';
 import '../bloc/post_creation_bloc.dart';
 import '../bloc/post_creation_event.dart';
 import '../bloc/post_creation_state.dart';
-import '../widgets/image_preview_widget.dart';
-import '../widgets/caption_input_widget.dart';
-import '../widgets/enhanced_location_picker.dart';
+import '../../../feed/data/models/post_model.dart';
 import '../../../../shared/services/haptic_service.dart';
 import '../../../../shared/services/snackbar_service.dart';
-import '../../../../shared/services/image_picker_service.dart';
-import '../../../../shared/services/location_service.dart';
-import 'package:image_picker/image_picker.dart' as picker;
+import '../../../../shared/widgets/video_player_widget.dart';
 
 class PostCreationPage extends StatelessWidget {
   const PostCreationPage({super.key});
@@ -47,23 +44,30 @@ class PostCreationPage extends StatelessWidget {
               builder: (context, state) {
                 return Container(
                   decoration: BoxDecoration(
-                    color: state.canSubmit && !state.isUploading
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withOpacity(0.1),
+                    color:
+                        state.canSubmit && !state.isUploading
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: state.canSubmit && !state.isUploading
-                          ? () {
-                              HapticService.buttonPress();
-                              context.read<PostCreationBloc>().add(const PostSubmitted());
-                            }
-                          : null,
+                      onTap:
+                          state.canSubmit && !state.isUploading
+                              ? () {
+                                HapticService.buttonPress();
+                                context.read<PostCreationBloc>().add(
+                                  const PostSubmitted(),
+                                );
+                              }
+                              : null,
                       borderRadius: BorderRadius.circular(20),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -81,9 +85,11 @@ class PostCreationPage extends StatelessWidget {
                             Text(
                               state.isUploading ? 'Sharing...' : 'Share',
                               style: TextStyle(
-                                color: state.canSubmit && !state.isUploading
-                                    ? Colors.white
-                                    : theme.colorScheme.onSurface.withOpacity(0.4),
+                                color:
+                                    state.canSubmit && !state.isUploading
+                                        ? Colors.white
+                                        : theme.colorScheme.onSurface
+                                            .withOpacity(0.4),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
                               ),
@@ -110,7 +116,9 @@ class PostCreationPage extends StatelessWidget {
                   label: 'Dismiss',
                   textColor: theme.colorScheme.onError,
                   onPressed: () {
-                    context.read<PostCreationBloc>().add(const PostCreationErrorCleared());
+                    context.read<PostCreationBloc>().add(
+                      const PostCreationErrorCleared(),
+                    );
                   },
                 ),
               ),
@@ -120,7 +128,7 @@ class PostCreationPage extends StatelessWidget {
           if (state.isCompleted) {
             // Add haptic feedback for success
             HapticService.postCreated();
-            
+
             // Show success message
             context.showSuccessSnackbar('Post shared successfully! 🎉');
 
@@ -134,223 +142,533 @@ class PostCreationPage extends StatelessWidget {
               return const UploadProgressWidget();
             }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image Selection/Preview
-                  ImagePreviewWidget(
-                    selectedImage: state.selectedImage,
-                    onImageTap: () => _showImagePickerOptions(context),
-                    onImageRemove: state.hasImage
-                        ? () {
-                            context.read<PostCreationBloc>().add(const ImageRemoved());
-                          }
-                        : null,
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Caption Input
-                  if (state.hasImage) ...[
-                    CaptionInputWidget(
-                      caption: state.caption,
-                      onCaptionChanged: (caption) {
-                        context.read<PostCreationBloc>().add(
-                          CaptionChanged(caption: caption),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Enhanced Location Picker
-                    EnhancedLocationPicker(
-                      selectedLocation: _parseLocationData(state.location),
-                      onLocationChanged: (locationData) {
-                        context.read<PostCreationBloc>().add(
-                          LocationChanged(location: locationData?.shortAddress),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Post Guidelines
-                    _buildPostGuidelines(theme),
-
-                    const SizedBox(height: 16),
-
-                    // Posting Tips
-                    _buildPostingTips(theme),
-                  ],
-                ],
-              ),
-            );
+            return _buildSimplifiedPostCreation(context, state, theme);
           },
         ),
       ),
     );
   }
 
-  /// Parse location string to LocationData for the enhanced picker
-  LocationData? _parseLocationData(String? location) {
-    if (location == null || location.isEmpty) return null;
-    
-    // For now, create a simple LocationData from the string
-    // In a real app, you might want to store more detailed location data
-    return LocationData(
-      latitude: 0,
-      longitude: 0,
-      address: location,
-    );
-  }
-
-  Future<void> _showImagePickerOptions(BuildContext context) async {
-    final imageSource = await ImagePickerService.showImageSourceDialog(context);
-    
-    if (imageSource != null && context.mounted) {
-      switch (imageSource) {
-        case picker.ImageSource.camera:
-          context.read<PostCreationBloc>().add(const ImageSelectedFromCamera());
-          break;
-        case picker.ImageSource.gallery:
-          context.read<PostCreationBloc>().add(const ImageSelectedFromGallery());
-          break;
-      }
+  /// Simplified single-screen post creation interface
+  Widget _buildSimplifiedPostCreation(
+    BuildContext context,
+    PostCreationState state,
+    ThemeData theme,
+  ) {
+    if (!state.hasMedia) {
+      return _buildMediaSelectionScreen(context, theme);
     }
-  }
 
-  Widget _buildPostGuidelines(ThemeData theme) {
-    return Container(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.lightbulb_outline,
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Tips for Great Posts',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildEnhancedTip(theme, Icons.wb_sunny_outlined, 'Use good lighting', 'Natural light works best for photos'),
-          _buildEnhancedTip(theme, Icons.edit_outlined, 'Write engaging captions', 'Tell your story and connect with your audience'),
-          _buildEnhancedTip(theme, Icons.location_on_outlined, 'Add your location', 'Help others discover your post'),
-          _buildEnhancedTip(theme, Icons.favorite_outline, 'Be authentic', 'Share your unique perspective', isLast: true),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPostingTips(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Did you know?',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Posts with locations get 79% more engagement and captions with emojis receive 47% more interactions! 📸✨',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.8),
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEnhancedTip(ThemeData theme, IconData icon, String title, String description, {bool isLast = false}) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          // Clean media preview (image or video)
           Container(
-            padding: const EdgeInsets.all(4),
+            width: double.infinity,
+            height: 320,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(
-              icon,
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: theme.colorScheme.onSurface,
-                  ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
-                    height: 1.3,
+              ],
+            ),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: state.hasVideo
+                      ? _buildVideoPreview(state.selectedMedia!)
+                      : Image.file(
+                          state.selectedMedia!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                ),
+
+                // Remove image button
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      onPressed: () {
+                        HapticService.lightImpact();
+                        context.read<PostCreationBloc>().add(
+                          const MediaRemoved(),
+                        );
+                      },
+                      padding: const EdgeInsets.all(6),
+                    ),
                   ),
                 ),
               ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Caption input
+          Text(
+            'Caption',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.2),
+              ),
+            ),
+            child: TextField(
+              onChanged: (caption) {
+                context.read<PostCreationBloc>().add(
+                  CaptionChanged(caption: caption),
+                );
+              },
+              style: theme.textTheme.bodyMedium,
+              decoration: InputDecoration(
+                hintText: 'Share what\'s on your mind...',
+                hintStyle: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(16),
+              ),
+              maxLines: 4,
+              minLines: 2,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Location input
+          Text(
+            'Location (Optional)',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.2),
+              ),
+            ),
+            child: TextField(
+              onChanged: (location) {
+                context.read<PostCreationBloc>().add(
+                  LocationChanged(location: location),
+                );
+              },
+              style: theme.textTheme.bodyMedium,
+              decoration: InputDecoration(
+                hintText: 'Where are you?',
+                hintStyle: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
+                prefixIcon: Icon(
+                  Icons.location_on_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Engagement tip (clean and minimal)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.2),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.lightbulb_outline,
+                    size: 20,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pro Tip',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Posts with captions and locations get more engagement!',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Clean media selection screen
+  Widget _buildMediaSelectionScreen(BuildContext context, ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(60),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.3),
+                width: 2,
+              ),
+            ),
+            child: Icon(
+              Icons.add_a_photo_outlined,
+              size: 48,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          Text(
+            'Share a moment',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          BlocBuilder<PostCreationBloc, PostCreationState>(
+            builder: (context, state) {
+              return Text(
+                state.mediaType == MediaType.video 
+                    ? 'Choose a video to get started'
+                    : 'Choose a photo to get started',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 32),
+
+            // Media type selector
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(32),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  BlocBuilder<PostCreationBloc, PostCreationState>(
+                    builder: (context, state) {
+                      return _buildMediaTypeButton(
+                        context,
+                        icon: Icons.photo_library_outlined,
+                        label: 'Photos',
+                        isSelected: state.mediaType == MediaType.image,
+                        onTap: () {
+                          HapticService.lightImpact();
+                          context.read<PostCreationBloc>().add(
+                            MediaTypeChanged(mediaType: MediaType.image),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  BlocBuilder<PostCreationBloc, PostCreationState>(
+                    builder: (context, state) {
+                      return _buildMediaTypeButton(
+                        context,
+                        icon: Icons.videocam_outlined,
+                        label: 'Videos',
+                        isSelected: state.mediaType == MediaType.video,
+                        onTap: () {
+                          HapticService.lightImpact();
+                          context.read<PostCreationBloc>().add(
+                            MediaTypeChanged(mediaType: MediaType.video),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Source selection buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Camera button
+                BlocBuilder<PostCreationBloc, PostCreationState>(
+                  builder: (context, state) {
+                    return ElevatedButton.icon(
+                      onPressed: () {
+                        HapticService.lightImpact();
+                        if (state.mediaType == MediaType.video) {
+                          context.read<PostCreationBloc>().add(
+                            const VideoSelectedFromCamera(),
+                          );
+                        } else {
+                          context.read<PostCreationBloc>().add(
+                            const ImageSelectedFromCamera(),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.camera_alt_outlined),
+                      label: const Text('Camera'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+ 
+                const SizedBox(width: 16),
+ 
+                // Gallery button
+                BlocBuilder<PostCreationBloc, PostCreationState>(
+                  builder: (context, state) {
+                    return OutlinedButton.icon(
+                      onPressed: () {
+                        HapticService.lightImpact();
+                        if (state.mediaType == MediaType.video) {
+                          context.read<PostCreationBloc>().add(
+                            const VideoSelectedFromGallery(),
+                          );
+                        } else {
+                          context.read<PostCreationBloc>().add(
+                            const ImageSelectedFromGallery(),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: const Text('Gallery'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMediaTypeButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected 
+                ? Colors.white 
+                : theme.colorScheme.onSurface.withOpacity(0.7),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isSelected 
+                  ? Colors.white 
+                  : theme.colorScheme.onSurface.withOpacity(0.7),
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoPreview(File videoFile) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        children: [
+          // Actual video preview - centered and properly fitted
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Center(
+                child: VideoPlayerWidget(
+                  videoUrl: videoFile.path, // Local file path
+                  autoPlay: false,          // Don't auto-play in preview
+                  muted: true,              // Muted by default
+                  showControls: true,       // Show play/pause controls
+                  // No fixed aspectRatio - use video's natural ratio
+                ),
+              ),
+            ),
+          ),
+          
+          // Video indicator overlay
+          Positioned(
+            top: 12,
+            left: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.videocam,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Video Preview',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Helpful tip overlay
+          Positioned(
+            bottom: 12,
+            left: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    color: Colors.white70,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Tap to play/pause • Your video is ready to share',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

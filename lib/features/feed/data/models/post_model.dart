@@ -1,13 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 
+enum MediaType { image, video }
+
 class PostModel extends Equatable {
   final String id;
   final String authorId;
   final String authorUsername;
   final String? authorDisplayName;
   final String? authorProfileImageUrl;
-  final String imageUrl;
+  final String mediaUrl; // Can be image or video URL
+  final MediaType mediaType;
   final String caption;
   final String? location;
   final List<String> likes;
@@ -22,7 +25,8 @@ class PostModel extends Equatable {
     required this.authorUsername,
     this.authorDisplayName,
     this.authorProfileImageUrl,
-    required this.imageUrl,
+    required this.mediaUrl,
+    required this.mediaType,
     required this.caption,
     this.location,
     this.likes = const [],
@@ -37,7 +41,8 @@ class PostModel extends Equatable {
     id: '',
     authorId: '',
     authorUsername: '',
-    imageUrl: '',
+    mediaUrl: '',
+    mediaType: MediaType.image,
     caption: '',
     createdAt: DateTime.fromMillisecondsSinceEpoch(0),
     updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
@@ -46,6 +51,14 @@ class PostModel extends Equatable {
   // Check if post is empty
   bool get isEmpty => this == PostModel.empty;
   bool get isNotEmpty => this != PostModel.empty;
+
+  // Media type helpers
+  bool get isImage => mediaType == MediaType.image;
+  bool get isVideo => mediaType == MediaType.video;
+  
+  // Backward compatibility
+  String get imageUrl => mediaUrl; // For existing code that expects imageUrl
+  String get videoUrl => mediaUrl;
 
   // Getters for engagement metrics
   int get likesCount => likes.length;
@@ -58,13 +71,23 @@ class PostModel extends Equatable {
   factory PostModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     
+    // Handle backward compatibility - existing posts have 'imageUrl' field
+    String mediaUrl = data['mediaUrl'] ?? data['imageUrl'] ?? '';
+    MediaType mediaType = MediaType.image; // Default to image for backward compatibility
+    
+    // Parse mediaType if available
+    if (data['mediaType'] != null) {
+      mediaType = data['mediaType'] == 'video' ? MediaType.video : MediaType.image;
+    }
+    
     return PostModel(
       id: doc.id,
       authorId: data['authorId'] ?? '',
       authorUsername: data['authorUsername'] ?? '',
       authorDisplayName: data['authorDisplayName'],
       authorProfileImageUrl: data['authorProfileImageUrl'],
-      imageUrl: data['imageUrl'] ?? '',
+      mediaUrl: mediaUrl,
+      mediaType: mediaType,
       caption: data['caption'] ?? '',
       location: data['location'],
       likes: List<String>.from(data['likes'] ?? []),
@@ -109,7 +132,10 @@ class PostModel extends Equatable {
       'authorUsername': authorUsername,
       'authorDisplayName': authorDisplayName,
       'authorProfileImageUrl': authorProfileImageUrl,
-      'imageUrl': imageUrl,
+      'mediaUrl': mediaUrl,
+      'mediaType': mediaType == MediaType.video ? 'video' : 'image',
+      // Keep imageUrl for backward compatibility
+      'imageUrl': mediaUrl,
       'caption': caption,
       'location': location,
       'likes': likes,
@@ -127,7 +153,9 @@ class PostModel extends Equatable {
     String? authorUsername,
     String? authorDisplayName,
     String? authorProfileImageUrl,
-    String? imageUrl,
+    String? mediaUrl,
+    MediaType? mediaType,
+    String? imageUrl, // Keep for backward compatibility
     String? caption,
     String? location,
     List<String>? likes,
@@ -142,7 +170,8 @@ class PostModel extends Equatable {
       authorUsername: authorUsername ?? this.authorUsername,
       authorDisplayName: authorDisplayName ?? this.authorDisplayName,
       authorProfileImageUrl: authorProfileImageUrl ?? this.authorProfileImageUrl,
-      imageUrl: imageUrl ?? this.imageUrl,
+      mediaUrl: mediaUrl ?? imageUrl ?? this.mediaUrl, // Handle backward compatibility
+      mediaType: mediaType ?? this.mediaType,
       caption: caption ?? this.caption,
       location: location ?? this.location,
       likes: likes ?? this.likes,
@@ -183,7 +212,8 @@ class PostModel extends Equatable {
         authorUsername,
         authorDisplayName,
         authorProfileImageUrl,
-        imageUrl,
+        mediaUrl,
+        mediaType,
         caption,
         location,
         likes,

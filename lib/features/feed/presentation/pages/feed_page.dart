@@ -13,6 +13,7 @@ import '../../../../shared/widgets/skeleton_loaders.dart';
 import '../../../../shared/services/haptic_service.dart';
 import '../../../../shared/widgets/custom_refresh_indicator.dart';
 import '../../../../shared/widgets/animated_list_item.dart';
+import '../../../../shared/widgets/fullscreen_media_viewer.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -175,7 +176,7 @@ class _FeedPageState extends State<FeedPage> {
                     context.push('/profile/${post.authorId}');
                   },
                   onImageTapped: () {
-                    context.push('/post/${post.id}', extra: post);
+                    post.showFullscreen(context);
                   },
                 ),
               );

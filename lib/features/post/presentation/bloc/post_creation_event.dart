@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:equatable/equatable.dart';
+import '../../../feed/data/models/post_model.dart';
 
 abstract class PostCreationEvent extends Equatable {
   const PostCreationEvent();
@@ -26,8 +27,49 @@ class ImageSelected extends PostCreationEvent {
   List<Object?> get props => [imageFile];
 }
 
-class ImageRemoved extends PostCreationEvent {
-  const ImageRemoved();
+// Video selection events
+class VideoSelectedFromCamera extends PostCreationEvent {
+  const VideoSelectedFromCamera();
+}
+
+class VideoSelectedFromGallery extends PostCreationEvent {
+  const VideoSelectedFromGallery();
+}
+
+class VideoSelected extends PostCreationEvent {
+  final File videoFile;
+
+  const VideoSelected({required this.videoFile});
+
+  @override
+  List<Object?> get props => [videoFile];
+}
+
+// General media events
+class MediaSelected extends PostCreationEvent {
+  final File mediaFile;
+  final MediaType mediaType;
+
+  const MediaSelected({
+    required this.mediaFile,
+    required this.mediaType,
+  });
+
+  @override
+  List<Object?> get props => [mediaFile, mediaType];
+}
+
+class MediaTypeChanged extends PostCreationEvent {
+  final MediaType mediaType;
+
+  const MediaTypeChanged({required this.mediaType});
+
+  @override
+  List<Object?> get props => [mediaType];
+}
+
+class MediaRemoved extends PostCreationEvent {
+  const MediaRemoved();
 }
 
 // Caption events

@@ -22,7 +22,6 @@ class CommentWidget extends StatefulWidget {
 }
 
 class _CommentWidgetState extends State<CommentWidget> {
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

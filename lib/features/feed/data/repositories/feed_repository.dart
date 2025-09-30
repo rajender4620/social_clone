@@ -74,13 +74,14 @@ class FeedRepository {
   Future<PostModel> createPost({
     required String authorId,
     required UserModel author,
-    required File imageFile,
+    required File mediaFile,
+    required MediaType mediaType,
     required String caption,
     String? location,
   }) async {
     try {
-      // Upload image to Firebase Storage
-      final imageUrl = await _uploadPostImage(imageFile);
+      // Upload media to Firebase Storage
+      final mediaUrl = await _uploadPostMedia(mediaFile, mediaType);
 
       // Ensure we have proper user data with fallbacks
       final validatedAuthor = _validateUserDataForComment(author);
@@ -92,7 +93,8 @@ class FeedRepository {
         authorUsername: validatedAuthor['username']!,
         authorDisplayName: validatedAuthor['displayName'],
         authorProfileImageUrl: validatedAuthor['profileImageUrl'],
-        imageUrl: imageUrl,
+        mediaUrl: mediaUrl,
+        mediaType: mediaType,
         caption: caption,
         location: location,
         createdAt: DateTime.now(),
@@ -109,6 +111,24 @@ class FeedRepository {
     } catch (e) {
       throw Exception('Failed to create post: $e');
     }
+  }
+
+  // Backward compatibility method for existing code
+  Future<PostModel> createPostWithImage({
+    required String authorId,
+    required UserModel author,
+    required File imageFile,
+    required String caption,
+    String? location,
+  }) async {
+    return createPost(
+      authorId: authorId,
+      author: author,
+      mediaFile: imageFile,
+      mediaType: MediaType.image,
+      caption: caption,
+      location: location,
+    );
   }
 
   // Toggle like on a post
@@ -307,27 +327,33 @@ class FeedRepository {
     }
   }
 
-  // Helper method to upload post image
-  Future<String> _uploadPostImage(File imageFile) async {
+  // Helper method to upload post media (image or video)
+  Future<String> _uploadPostMedia(File mediaFile, MediaType mediaType) async {
     try {
-      print('📤 Starting image upload...');
+      final isVideo = mediaType == MediaType.video;
+      final mediaTypeName = isVideo ? 'video' : 'image';
+      print('📤 Starting $mediaTypeName upload...');
+      
+      // Generate filename with appropriate extension
+      final extension = isVideo ? 'mp4' : 'jpg';
       final fileName =
-          '${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}.jpg';
+          '${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}.$extension';
       final ref = _storage.ref().child('posts').child(fileName);
 
       print('📁 Upload path: posts/$fileName');
 
       // Add metadata for better web support
       final metadata = SettableMetadata(
-        contentType: 'image/jpeg',
+        contentType: isVideo ? 'video/mp4' : 'image/jpeg',
         customMetadata: {
           'uploaded_by': 'pumpkinsocial_app',
           'upload_time': DateTime.now().toIso8601String(),
+          'media_type': mediaTypeName,
         },
       );
 
-      print('⏳ Uploading to Firebase Storage...');
-      final uploadTask = ref.putFile(imageFile, metadata);
+      print('⏳ Uploading $mediaTypeName to Firebase Storage...');
+      final uploadTask = ref.putFile(mediaFile, metadata);
 
       // Monitor upload progress
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
@@ -343,7 +369,8 @@ class FeedRepository {
 
       return downloadURL;
     } catch (e) {
-      print('❌ Image upload failed: $e');
+      final mediaTypeName = mediaType == MediaType.video ? 'video' : 'image';
+      print('❌ $mediaTypeName upload failed: $e');
       if (e.toString().contains('storage/unauthorized')) {
         throw Exception(
           'Storage permission denied. Please check Firebase Storage rules.',
@@ -353,10 +380,11 @@ class FeedRepository {
           'Network error during upload. Please check your connection.',
         );
       } else {
-        throw Exception('Failed to upload image: $e');
+        throw Exception('Failed to upload $mediaTypeName: $e');
       }
     }
   }
+
 
   // Bookmark functionality
 

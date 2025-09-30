@@ -181,7 +181,7 @@ class _PostGridItem extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               CachedNetworkImage(
-                imageUrl: post.imageUrl,
+                imageUrl: post.mediaUrl,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
                   color: Colors.grey[200],
@@ -199,25 +199,11 @@ class _PostGridItem extends StatelessWidget {
               ),
               
               // Multiple photos indicator (if applicable)
-              if (post.caption.contains('#multiple')) // Placeholder logic
-                const Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Icon(
-                    Icons.copy_outlined,
-                    color: Colors.white,
-                    size: 20,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                ),
+              // TODO: Implement when multiple photos feature is added
+              // Disabled until multiple photos feature is implemented
               
               // Video indicator (if applicable)
-              if (post.caption.contains('#video')) // Placeholder logic
+              if (post.isVideo)
                 const Positioned(
                   top: 8,
                   right: 8,

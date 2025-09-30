@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../feed/data/repositories/feed_repository.dart';
+import '../../../feed/data/models/post_model.dart';
 import '../../../feed/presentation/bloc/feed_bloc.dart';
 import '../../../feed/presentation/bloc/feed_event.dart';
 import '../../../../shared/services/image_picker_service.dart';
@@ -31,7 +32,12 @@ class PostCreationBloc extends Bloc<PostCreationEvent, PostCreationState> {
     on<ImageSelectedFromCamera>(_onImageSelectedFromCamera);
     on<ImageSelectedFromGallery>(_onImageSelectedFromGallery);
     on<ImageSelected>(_onImageSelected);
-    on<ImageRemoved>(_onImageRemoved);
+    on<VideoSelectedFromCamera>(_onVideoSelectedFromCamera);
+    on<VideoSelectedFromGallery>(_onVideoSelectedFromGallery);
+    on<VideoSelected>(_onVideoSelected);
+    on<MediaSelected>(_onMediaSelected);
+    on<MediaTypeChanged>(_onMediaTypeChanged);
+    on<MediaRemoved>(_onMediaRemoved);
     on<CaptionChanged>(_onCaptionChanged);
     on<LocationChanged>(_onLocationChanged);
     on<PostSubmitted>(_onPostSubmitted);
@@ -44,12 +50,12 @@ class PostCreationBloc extends Bloc<PostCreationEvent, PostCreationState> {
     ImageSelectedFromCamera event,
     Emitter<PostCreationState> emit,
   ) async {
-    emit(state.copyWithImageSelecting());
+    emit(state.copyWithMediaSelecting());
 
     try {
       final imageFile = await _imagePickerService.pickImage(ImageSource.camera);
       if (imageFile != null) {
-        emit(state.copyWithImageSelected(imageFile));
+        emit(state.copyWithMediaSelected(imageFile, MediaType.image));
       } else {
         // User cancelled, go back to previous state
         emit(state.copyWithoutError());
@@ -64,12 +70,12 @@ class PostCreationBloc extends Bloc<PostCreationEvent, PostCreationState> {
     ImageSelectedFromGallery event,
     Emitter<PostCreationState> emit,
   ) async {
-    emit(state.copyWithImageSelecting());
+    emit(state.copyWithMediaSelecting());
 
     try {
       final imageFile = await _imagePickerService.pickImage(ImageSource.gallery);
       if (imageFile != null) {
-        emit(state.copyWithImageSelected(imageFile));
+        emit(state.copyWithMediaSelected(imageFile, MediaType.image));
       } else {
         // User cancelled, go back to previous state
         emit(state.copyWithoutError());
@@ -84,12 +90,85 @@ class PostCreationBloc extends Bloc<PostCreationEvent, PostCreationState> {
     ImageSelected event,
     Emitter<PostCreationState> emit,
   ) {
-    emit(state.copyWithImageSelected(event.imageFile));
+    emit(state.copyWithMediaSelected(event.imageFile, MediaType.image));
   }
 
-  // Handle image removal
-  void _onImageRemoved(
-    ImageRemoved event,
+
+  // Handle camera video selection
+  Future<void> _onVideoSelectedFromCamera(
+    VideoSelectedFromCamera event,
+    Emitter<PostCreationState> emit,
+  ) async {
+    emit(state.copyWithMediaSelecting());
+
+    try {
+      final videoFile = await _imagePickerService.pickVideo(ImageSource.camera);
+      if (videoFile != null) {
+        emit(state.copyWithMediaSelected(videoFile, MediaType.video));
+      } else {
+        // User cancelled, go back to previous state
+        emit(state.copyWithoutError());
+      }
+    } catch (e) {
+      emit(state.copyWithError('Failed to capture video: $e'));
+    }
+  }
+
+  // Handle gallery video selection
+  Future<void> _onVideoSelectedFromGallery(
+    VideoSelectedFromGallery event,
+    Emitter<PostCreationState> emit,
+  ) async {
+    emit(state.copyWithMediaSelecting());
+
+    try {
+      final videoFile = await _imagePickerService.pickVideo(ImageSource.gallery);
+      if (videoFile != null) {
+        emit(state.copyWithMediaSelected(videoFile, MediaType.video));
+      } else {
+        // User cancelled, go back to previous state
+        emit(state.copyWithoutError());
+      }
+    } catch (e) {
+      emit(state.copyWithError('Failed to select video: $e'));
+    }
+  }
+
+  // Handle direct video selection
+  void _onVideoSelected(
+    VideoSelected event,
+    Emitter<PostCreationState> emit,
+  ) {
+    emit(state.copyWithMediaSelected(event.videoFile, MediaType.video));
+  }
+
+  // Handle general media selection
+  void _onMediaSelected(
+    MediaSelected event,
+    Emitter<PostCreationState> emit,
+  ) {
+    emit(state.copyWithMediaSelected(event.mediaFile, event.mediaType));
+  }
+
+  // Handle media type change
+  void _onMediaTypeChanged(
+    MediaTypeChanged event,
+    Emitter<PostCreationState> emit,
+  ) {
+    emit(PostCreationState(
+      status: state.status,
+      selectedMedia: state.selectedMedia,
+      mediaType: event.mediaType,
+      caption: state.caption,
+      location: state.location,
+      uploadProgress: state.uploadProgress,
+      errorMessage: state.errorMessage,
+    ));
+  }
+
+  // Handle media removal
+  void _onMediaRemoved(
+    MediaRemoved event,
     Emitter<PostCreationState> emit,
   ) {
     emit(state.copyWithReset());
@@ -117,7 +196,7 @@ class PostCreationBloc extends Bloc<PostCreationEvent, PostCreationState> {
     Emitter<PostCreationState> emit,
   ) async {
     if (!state.canSubmit) {
-      emit(state.copyWithError('Please select an image and add a caption'));
+      emit(state.copyWithError('Please select media (image or video) and add a caption'));
       return;
     }
 
@@ -135,13 +214,15 @@ class PostCreationBloc extends Bloc<PostCreationEvent, PostCreationState> {
       print('   Author: ${authState.user.username}');
       print('   Caption: ${state.caption.trim()}');
       print('   Location: ${state.location?.trim()}');
-      print('   Image file: ${state.selectedImage!.path}');
+      print('   Media file: ${state.selectedMedia!.path}');
+      print('   Media type: ${state.mediaType}');
 
       // Create the post
       final newPost = await _feedRepository.createPost(
         authorId: authState.user.uid,
         author: authState.user,
-        imageFile: state.selectedImage!,
+        mediaFile: state.selectedMedia!,
+        mediaType: state.mediaType,
         caption: state.caption.trim(),
         location: state.location?.trim().isEmpty == true ? null : state.location?.trim(),
       );
